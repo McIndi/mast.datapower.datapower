@@ -1,21 +1,7 @@
-import base64
-from itertools import cycle, izip
+from mast.xor import xordecode
+from mast.config import get_config
 from DataPower import DataPower, STATUS_XPATH
-import ConfigParser
 
-def xordecode(string, key="_"):
-    """Returns the base64 decoded, XORed version of string. This is XORed with
-    key, which defaults to a single underscore"""
-    string = base64.decodestring(string)
-    return ''.join(
-        chr(ord(c) ^ ord(k)) for c, k in izip(string, cycle(key))).strip()
-
-def get_config(filename):
-    '''get_config: get the config, parse it and return it'''
-    config = ConfigParser.RawConfigParser()
-    config.read(filename)
-    config.read(filename)
-    return config
 
 def initialize_environments():
     """Initializes a global variable (module level) environments which
@@ -75,7 +61,7 @@ def get_environment(name, credentials=None):
 class Environment(object):
     """Represents an arbitrary grouping of DataPower appliances"""
     def __init__(self, hostnames, credentials=None, timeout=120,
-        check_hostname=False):
+        check_hostname=True):
         """Initializes the Environment with hostnames. If credentials are
         provided then initialize will be called to initialize the DataPower
         appliances."""
@@ -114,7 +100,8 @@ class Environment(object):
                             check_hostname=self.check_hostname))
             else:
                 self.appliances.append(
-                    DataPower(hostname, self.credentials[index], check_hostname=self.check_hostname))
+                    DataPower(hostname, self.credentials[index],
+                              check_hostname=self.check_hostname))
         for appliance in self.appliances:
             appliance.request.set_timeout(self.timeout)
 
