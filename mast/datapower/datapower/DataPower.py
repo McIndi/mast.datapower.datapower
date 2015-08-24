@@ -20,6 +20,11 @@ import sys
 class AuthenticationFailure(Exception):
     pass
 
+
+class FailedToRetrieveBackup(Exception):
+    pass
+
+
 def get_config(filename):
     '''get_config: get the config, parse it and return it'''
     config = ConfigParser.RawConfigParser()
@@ -2391,6 +2396,11 @@ class DataPower(object):
                 BASE_XPATH,
                 "{http://www.datapower.com/schemas/management}file"))
             _file = resp.xml.find(xpath).text
+        except AttributeError:
+            raise FailedToRetrieveBackup(
+                "DataPower did not send a valid backup when requested."
+                "This can sometimes be fixed by cleaning up the filesystem"
+                "and retrying.")
         except:
             self.log_error(
                 "There was an error retrieving a backup from {}".format(domain))
