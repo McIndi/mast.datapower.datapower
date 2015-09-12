@@ -33,6 +33,18 @@ def get_config(filename):
     return config
 
 try:
+    # BEGIN HACK
+    # This should be removed as soon as this issue is resoleved in
+    # PyCrypto package: https://github.com/dlitz/pycrypto/issues/149
+    import Crypto.Cipher.AES
+    orig_new = Crypto.Cipher.AES.new
+    def fixed_AES_new(key, *ls):
+        if Crypto.Cipher.AES.MODE_CTR == ls[0]:
+            ls = list(ls)
+            ls[1] = ''
+        return orig_new(key, *ls)
+    Crypto.Cipher.AES.new = fixed_AES_new
+    # END HACK
     import paramiko
     paramiko_is_present = True
 except ImportError:
