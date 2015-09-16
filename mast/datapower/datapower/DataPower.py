@@ -2,20 +2,16 @@ from dpSOMALib import SomaRequest as Request
 import xml.etree.cElementTree as etree
 from functools import partial, wraps
 from mast.timestamp import Timestamp
-from logging import StreamHandler
+from mast.config import get_config
 from mast.hashes import get_sha1
 from datetime import datetime
 from time import time, sleep
-import ConfigParser
-import functools
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import random
 import base64
-import specs
 import os
 import re
-import sys
+
 
 class AuthenticationFailure(Exception):
     pass
@@ -24,13 +20,6 @@ class AuthenticationFailure(Exception):
 class FailedToRetrieveBackup(Exception):
     pass
 
-
-def get_config(filename):
-    '''get_config: get the config, parse it and return it'''
-    config = ConfigParser.RawConfigParser()
-    config.read(filename)
-    config.read(filename)
-    return config
 
 try:
     # BEGIN HACK
@@ -344,8 +333,6 @@ class ConfigResponse(DPResponse):
 logger = logging.getLogger("DataPower")
 logger.addHandler(logging.NullHandler())
 
-hosts_map = {}
-
 class DataPower(object):
     """
     # class DataPower
@@ -367,7 +354,7 @@ class DataPower(object):
 
     def __init__(self, hostname, credentials, domain='default',
                  scheme='https', port='5550', uri='/service/mgmt/current',
-                 test_case='v7000xi52', web_port='9090',
+                 test_case='etc/v7000-xi52.xml', web_port='9090',
                  ssh_port=22, environment=None, check_hostname=True):
         """
         ## DataPower.__init__()
@@ -415,14 +402,14 @@ class DataPower(object):
             default
             >>> print dp.environment
             -"""
+        hosts_config = get_config("hosts.conf")
         self.session_id = random.randint(1000000, 9999999)
         self.correlation_id = None
         self.check_hostname = check_hostname
         self._history = []
         self.hostname = hostname
-
-        if hostname in hosts_map:
-            self._hostname = hosts_map[hostname]
+        if hosts_config.has_option("hosts", hostname):
+            self._hostname = hosts_config.get("hosts", hostname)
         else:
             self._hostname = hostname
 
@@ -433,11 +420,6 @@ class DataPower(object):
         self.ssh_port = ssh_port
         self.uri = uri
         self.test_case = test_case
-        if  isinstance(test_case, basestring):
-            if hasattr(specs, test_case):
-                import base64
-                test_case = getattr(specs, test_case)
-                self.test_case = base64.decodestring(test_case)
 
         self.domain = domain
         self._environment = environment
@@ -450,6 +432,27 @@ class DataPower(object):
                 "Paramiko Library is not present "
                 "any ssh related functionality will "
                 "not work.")
+
+        config = get_config("appliances.conf")
+        if config.has_section(self.hostname):
+
+            if config.has_option(self.hostname, 'soma_port'):
+                self.port = config.get(self.hostname, 'soma_port')
+
+            if config.has_option(self.hostname, 'web_port'):
+                self.web_port = config.get(self.hostname, 'web_port')
+
+            if config.has_option(self.hostname, 'ssh_port'):
+                self.ssh_port = config.getint(self.hostname, 'ssh_port')
+
+            if config.has_option(self.hostname, 'soma_scheme'):
+                self.scheme = config.get(self.hostname, 'soma_scheme')
+
+            if config.has_option(self.hostname, 'soma_uri'):
+                self.uri = config.get(self.hostname, 'soma_uri')
+
+            if config.has_option(self.hostname, 'soma_spec_file'):
+                self.test_case = config.get(self.hostname, 'soma_spec_file')
 
         self.request = Request(self.scheme, self._hostname, self.port, self.uri,
             self.credentials, self.test_case)
