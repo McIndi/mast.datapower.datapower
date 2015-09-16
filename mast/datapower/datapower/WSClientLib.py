@@ -194,14 +194,9 @@ class Request(object):
             # test_case is already parsed
             self._test_case = test_case
         elif isinstance(test_case, str):
-            # If test_case is type str then it should be a xml document
-            # as a string
-            from cStringIO import StringIO
-            test_case = StringIO(test_case)
-            test_case.seek(0)
-            self._test_case = cEtree.parse(test_case)
-#            with open(test_case, "r") as fin:
-#                self._test_case = cEtree.parse(fin)
+            # If test_case is type str then it should be a filename
+            with open(test_case, "r") as fin:
+                self._test_case = cEtree.parse(fin)
         else:
             # currently we only support two types for test_case:
             # str, ElementTree
