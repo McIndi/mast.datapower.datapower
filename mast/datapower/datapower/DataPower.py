@@ -889,9 +889,14 @@ class DataPower(object):
         This uses the information passed into the constructor as well as
         settings configured in $MAST_HOME/etc/local/appliances.conf"""
         import urllib2
+        import ssl
+        context = ssl.create_default_context()
+        if not self.check_hostname:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
         url = 'https://' + self._hostname + ':' + self.web_port
         try:
-            test = urllib2.urlopen(url)
+            test = urllib2.urlopen(url, context=context)
         except urllib2.URLError, e:
             self.log_error(
                 "An error occurred while attempting to "
