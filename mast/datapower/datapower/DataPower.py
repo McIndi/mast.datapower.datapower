@@ -502,7 +502,9 @@ class DataPower(object):
             self._ssh = paramiko.SSHClient()
             username, password = self.credentials.split(':')
 
-            self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            ssh_config = get_config("ssh.conf")
+            if ssh_config.getboolean("ssh", "auto_add_keys")
+                self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             try:
                 self.log_debug("Attempting to initialize SSH subsystem")
                 self._ssh.connect(
