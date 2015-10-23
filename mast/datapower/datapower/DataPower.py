@@ -758,7 +758,10 @@ class DataPower(object):
         for k, v in self.extra.items():
             msg.append('"{0}": "{1}", '.format(k, v))
         msg.append('"message": "{}"'.format(message))
-        logger.debug(''.join(msg))
+        msg = ''.join(msg)
+        username, password = self.credentials.split(':')
+        msg = msg.replace(password, "********")
+        logger.debug(msg)
 
     def log_info(self, message):
         """
@@ -771,7 +774,10 @@ class DataPower(object):
         for k, v in self.extra.items():
             msg.append('"{0}": "{1}", '.format(k, v))
         msg.append('"message": "{}"'.format(message))
-        logger.info(''.join(msg))
+        msg = ''.join(msg)
+        username, password = self.credentials.split(':')
+        msg = msg.replace(password, "********")
+        logger.debug(msg)
 
     def log_warn(self, message):
         """
@@ -784,7 +790,10 @@ class DataPower(object):
         for k, v in self.extra.items():
             msg.append('"{0}": "{1}", '.format(k, v))
         msg.append('"message": "{}"'.format(message))
-        logger.warning(''.join(msg))
+        msg = ''.join(msg)
+        username, password = self.credentials.split(':')
+        msg = msg.replace(password, "********")
+        logger.info(msg)
 
     def log_error(self, message, get_logs=False):
         """
@@ -800,7 +809,11 @@ class DataPower(object):
         for k, v in self.extra.items():
             msg.append('"{0}": "{1}", '.format(k, v))
         msg.append('"message": "{}"'.format(message))
-        logger.error(''.join(msg))
+        msg = ''.join(msg)
+        username, password = self.credentials.split(':')
+        msg = msg.replace(password, "********")
+        logger.error(msg)
+
         self.log_debug("Request/Response History: {}".format(self.history))
 
         if get_logs:
@@ -820,7 +833,10 @@ class DataPower(object):
         for k, v in self.extra.items():
             _msg.append('"{0}": "{1}", '.format(k, v))
         _msg.append('"message": "{}"'.format(msg))
-        logger.critical(''.join(_msg))
+        msg = ''.join(msg)
+        username, password = self.credentials.split(':')
+        msg = msg.replace(password, "********")
+        logger.critical(msg)
         self.log_debug("Request/Response History: {}".format(self.history))
         if get_logs:
             self.get_all_logs()
