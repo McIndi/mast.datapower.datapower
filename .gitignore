@@ -1,3 +1,4 @@
 build/
 dist/
 mast.datapower.datapower.egg-info/
+*.pyc
