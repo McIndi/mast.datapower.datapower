@@ -4,6 +4,7 @@ from functools import partial, wraps
 from mast.timestamp import Timestamp
 from mast.config import get_config
 from mast.hashes import get_sha1
+from mast.logging import make_logger
 from datetime import datetime
 from time import time, sleep
 import logging
@@ -479,8 +480,15 @@ class DataPower(object):
             >>> print type(dp.get_logger())
             <class 'logging.Logger'>
         """
-        logger = logging.getLogger("DataPower.{}".format(self.hostname))
-        return logger
+        #logger = logging.getLogger("DataPower.{}".format(self.hostname))
+        user = self.credentials.split(":")[0]
+        if not hasattr(self, "_logger"):
+            self._logger = make_logger(
+                "{}.{}.{}".format(
+                    self.hostname,
+                    user,
+                    Timestamp().timestamp))
+        return self._logger
 
     @correlate
     @logged
@@ -1868,7 +1876,7 @@ class DataPower(object):
     @correlate
     @logged
     def copy_directory(self, dp_path, local_path, domain='default',
-        recursive=True):
+        recursive=True, filestore=None):
         """
         ## DataPower.copy_directory
 
@@ -1920,33 +1928,41 @@ class DataPower(object):
         except:
             pass
 
-        try:
-            filestore = self.get_filestore(domain=domain, location=dp_path)
-        except TypeError:
-            self.log_error(
-                "Error reading directory: %s, request: %s, response: %s" % (
-                dir, self.request, self.last_response.read()))
-            return None
+        if filestore is None:
+            location = '{}:'.format(dp_path.split(':')[0])
+            try:
+                filestore = self.get_filestore(domain=domain, location=location)
+            except TypeError:
+                self.log_error(
+                    "Error reading directory: %s, request: %s, response: %s" % (
+                    dir, self.request, self.last_response.read()))
+                return None
 
         files = self.ls(
             dp_path,
             domain=domain,
             include_directories=recursive,
             filestore=filestore)
+
         for file in files:
+            self.log_info("Getting file {}".format(file))
             if file.endswith("/"):
                 _local_path = os.path.join(local_path, file[:-1].split("/")[-1])
-                #print _local_path
                 try:
                     os.makedirs(_local_path)
                 except:
                     pass
-                self.copy_directory(file, _local_path, domain=domain)
+                self.copy_directory(
+                    file,
+                    _local_path,
+                    domain=domain,
+                    filestore=filestore)
                 continue
             filename = os.path.join(local_path, file.split('/')[-1])
             with open(filename, 'wb') as fout:
                 fname = '{}/{}'.format(dp_path, file)
                 fout.write(self.getfile(domain=domain, filename=fname))
+
 
     @correlate
     @logged
