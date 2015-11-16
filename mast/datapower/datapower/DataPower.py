@@ -1601,10 +1601,9 @@ class DataPower(object):
 
         * file_in: Should be a string containing the path and
         filename of the file to upload
-        * file_out: Should be the path and filename of the file
-        once uploaded to the DataPower
-        NOTE: file_out should contain the filename
-        ie. local:/test.txt
+        * file_out: If a location or directory is provided filename will be
+        as it appears on the local machine, if a path and filename is provided
+        filename will be as provided
         * domain: The domain to which to upload the file
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1636,12 +1635,9 @@ class DataPower(object):
                 self.log_error(
                     "Attempted to overwrite file with overwrite set to False")
                 return False
-        if self.directory_exists(file_out, domain):
-            self.log_error("Attempted set-file on a directory")
-            raise IOError("Cannot set a directory")
-        if self.location_exists(file_out, domain):
-            self.log_error("Attempted set-file on a location")
-            raise IOError("Cannot set a location")
+        if self.directory_exists(file_out, domain) or self.location_exists(file_out, domain):
+            file_out = "{}/{}".format(file_out, os.path.basename(file_in))
+            file_out = file_out.replace("//", "/")
         self.domain = domain
         file_in = self._get_local_file(file_in)
         self.request.clear()
