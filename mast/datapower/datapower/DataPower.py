@@ -1920,7 +1920,19 @@ class DataPower(object):
         except:
             pass
 
-        files = self.ls(dp_path, domain=domain, include_directories=recursive)
+        try:
+            filestore = self.get_filestore(domain=domain, location=dp_path)
+        except TypeError:
+            self.log_error(
+                "Error reading directory: %s, request: %s, response: %s" % (
+                dir, self.request, self.last_response.read()))
+            return None
+
+        files = self.ls(
+            dp_path,
+            domain=domain,
+            include_directories=recursive,
+            filestore=filestore)
         for file in files:
             if file.endswith("/"):
                 _local_path = os.path.join(local_path, file[:-1].split("/")[-1])
@@ -1938,7 +1950,8 @@ class DataPower(object):
 
     @correlate
     @logged
-    def ls(self, dir, domain='default', include_directories=True):
+    def ls(self, dir, domain='default', include_directories=True,
+           filestore=None):
         """
         ## DataPower.ls
 
@@ -1959,13 +1972,14 @@ class DataPower(object):
         self.domain = domain
         self.log_info("Attempting to list directory: %s" % (dir))
         location = '{}:'.format(dir.split(':')[0])
-        try:
-            filestore = self.get_filestore(domain=domain, location=location)
-        except TypeError:
-            self.log_error(
-                "Error reading directory: %s, request: %s, response: %s" % (
-                dir, self.request, self.last_response.read()))
-            return None
+        if filestore is None:
+            try:
+                filestore = self.get_filestore(domain=domain, location=location)
+            except TypeError:
+                self.log_error(
+                    "Error reading directory: %s, request: %s, response: %s" % (
+                    dir, self.request, self.last_response.read()))
+                return None
         fs = filestore.xml.find(FILESTORE_XPATH)
         directory = fs.find('.//directory[@name="{}"]'.format(dir))
         if directory is None:
