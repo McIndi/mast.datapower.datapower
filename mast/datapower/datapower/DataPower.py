@@ -480,15 +480,15 @@ class DataPower(object):
             >>> print type(dp.get_logger())
             <class 'logging.Logger'>
         """
-        #logger = logging.getLogger("DataPower.{}".format(self.hostname))
-        user = self.credentials.split(":")[0]
-        if not hasattr(self, "_logger"):
-            self._logger = make_logger(
-                "{}.{}.{}".format(
-                    self.hostname,
-                    user,
-                    Timestamp().timestamp))
-        return self._logger
+        logger = logging.getLogger("DataPower.{}".format(self.hostname))
+#        user = self.credentials.split(":")[0]
+#        if not hasattr(self, "_logger"):
+#            self._logger = make_logger(
+#                "{}.{}.{}".format(
+#                    self.hostname,
+#                    user,
+#                    Timestamp().timestamp))
+        return logger
 
     @correlate
     @logged
@@ -1646,6 +1646,9 @@ class DataPower(object):
         if self.directory_exists(file_out, domain) or self.location_exists(file_out, domain):
             file_out = "{}/{}".format(file_out, os.path.basename(file_in))
             file_out = file_out.replace("//", "/")
+        # Fix for leading and trailing whitespace in the filename
+        file_out_fname = file_out.split("/")[-1]
+        file_out = file_out.replace(file_out_fname, file_out_fname.strip())
         self.domain = domain
         file_in = self._get_local_file(file_in)
         self.request.clear()
