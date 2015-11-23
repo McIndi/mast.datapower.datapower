@@ -22,23 +22,29 @@ class FailedToRetrieveBackup(Exception):
     pass
 
 
+class SSHTimeoutError(Exception):
+    pass
+
 try:
     # BEGIN HACK
     # This should be removed as soon as this issue is resoleved in
     # PyCrypto package: https://github.com/dlitz/pycrypto/issues/149
     import Crypto.Cipher.AES
     orig_new = Crypto.Cipher.AES.new
+
     def fixed_AES_new(key, *ls):
         if Crypto.Cipher.AES.MODE_CTR == ls[0]:
             ls = list(ls)
             ls[1] = ''
         return orig_new(key, *ls)
+
     Crypto.Cipher.AES.new = fixed_AES_new
     # END HACK
     import paramiko
     paramiko_is_present = True
 except ImportError:
     paramiko_is_present = False
+
 
 def format_args(args):
     return ", ".join(("'" + str(arg) + "'" for arg in args))
@@ -138,6 +144,7 @@ STATUS_XPATH += '{http://www.datapower.com/schemas/management}status/'
 FILESTORE_XPATH = BASE_XPATH
 FILESTORE_XPATH += '{http://www.datapower.com/schemas/management}filestore/'
 
+
 def pretty_print(elem, level=0):
     """
     pretty_print: I took this from several places on the internet
@@ -170,7 +177,8 @@ class DPResponse(object):
                 >>> dp = DataPower('hostname', 'user:password')
                 >>> resp = dp.get_config('EthernetInterface')
                 >>> print resp.text
-                XML (string) Response with newlines removed and spaces collapsed
+                XML (string) Response with newlines removed and \
+                spaces collapsed
                 >>> print resp.xml
                 xml.etree.cElementTree ElementTree object
                 >>> print resp.pretty
@@ -193,10 +201,12 @@ class DPResponse(object):
         """
         if not hasattr(self, '_xml'):
             if hasattr(etree, 'register_namespace'):
-                etree.register_namespace('dp',
-                        'http://www.datapower.com/schemas/management')
-                etree.register_namespace('env',
-                        'http://schemas.xmlsoap.org/soap/envelope/')
+                etree.register_namespace(
+                    'dp',
+                    'http://www.datapower.com/schemas/management')
+                etree.register_namespace(
+                    'env',
+                    'http://schemas.xmlsoap.org/soap/envelope/')
             else:
                 pass
             self._xml = etree.fromstring(self.text)
@@ -334,6 +344,7 @@ class ConfigResponse(DPResponse):
 logger = logging.getLogger("DataPower")
 logger.addHandler(logging.NullHandler())
 
+
 class DataPower(object):
     """
     # class DataPower
@@ -455,8 +466,12 @@ class DataPower(object):
             if config.has_option(self.hostname, 'soma_spec_file'):
                 self.test_case = config.get(self.hostname, 'soma_spec_file')
 
-        self.request = Request(self.scheme, self._hostname, self.port, self.uri,
-            self.credentials, self.test_case)
+        self.request = Request(self.scheme,
+                               self._hostname,
+                               self.port,
+                               self.uri,
+                               self.credentials,
+                               self.test_case)
         self._add_dynamic_methods()
 
         # Compatability
@@ -616,7 +631,8 @@ class DataPower(object):
         self.log_info(
             "Attempting to send SSH command: "
             "{}".format(
-                command.strip().replace("\n{}\n".format(password), "********")))
+                command.strip().replace(
+                    "\n{}\n".format(password), "********")))
         self._ssh_conn.sendall(command)
 
         # Wait for a response, but check for timeouts
@@ -677,7 +693,7 @@ class DataPower(object):
         #
         # Finally we check to see if "login:" is in the response to handle
         # the case when you provided invalid credentials
-        #import re
+        # import re
         if self._ssh_conn.recv_ready():
             return False
         if re.match('.*?:x[a-z].*#|x[a-z].*#', resp.splitlines()[-1]):
@@ -705,9 +721,9 @@ class DataPower(object):
 
         Special classes are available for use when expecting a response
         of a specific type. You can enable the use of these special classes
-        simply by providing one of the expected kwargs (status, config, boolean)
-        These typically map pretty well to "get-status", "get-config" and
-        "do-action" requests.
+        simply by providing one of the expected kwargs
+        (status, config, boolean) These typically map pretty well
+        to "get-status", "get-config" and "do-action" requests.
 
             >>> dp = DataPower("localhost", "user:pass")
             >>> print type(dp.send_request(status=True))
@@ -731,7 +747,8 @@ class DataPower(object):
         except Exception, e:
             _hist["response"] = str(e).replace("\n", "").replace("\r", "")
             if hasattr(e, "read"):
-                _hist["response"] = e.read().replace("\n", "").replace("\r", "")
+                _hist["response"] = e.read().replace(
+                        "\n", "").replace("\r", "")
             self._history.append(_hist)
             self.log_error(
                 "An error occurred trying to send request to "
@@ -876,7 +893,7 @@ class DataPower(object):
         try:
             resp = self.get_status("Version")
             # Because of lazy-loading we must explicitly prompt xml parsing
-            tree = resp.xml  # lint:ok
+            tree = resp.xml
             return 'datapower' in resp.text
         except:
             return False
@@ -1221,7 +1238,8 @@ class DataPower(object):
         self.request.clear()
         if privileged and user_group:
             # Can't specify both access_level and user_group
-            self.log_error("user group provided for privileged user. Aborting.")
+            self.log_error(
+                "user group provided for privileged user. Aborting.")
             return False
         if not privileged and not user_group:
             # Must specify one of: access_level or user_group
@@ -1422,10 +1440,11 @@ class DataPower(object):
         '''
         # Because of the way SOMA works, if we try and just add a fallback
         # user it will remove the rest of that fallback user's
-        # configuration. To remedy this we first grab the existing configuration
-        # and append it to the request to add the fallback user effectively
-        # rewriting it's entire configuration...Seems inefficient, but
-        # otherwise we're stuck doing this step manually
+        # configuration. To remedy this we first grab
+        # the existing configuration and append it to the request to
+        # add the fallback user effectively rewriting it's entire
+        # configuration...Seems inefficient, but otherwise we're
+        # stuck doing this step manually
         if user not in self.users:
             self.log_error("User {} does not exist. Exiting...".format(user))
             raise KeyError("User {} does not exist on appliance".format(user))
@@ -1461,8 +1480,10 @@ class DataPower(object):
 
     @correlate
     @logged
-    def add_group(self, name, access_policies=None, admin_state="enabled",
-        local=True):
+    def add_group(self, name,
+                  access_policies=None,
+                  admin_state="enabled",
+                  local=True):
         """
         ## DataPower.add_group
 
@@ -1551,8 +1572,8 @@ class DataPower(object):
             self.log_error(
                 "An error occurred while trying to retrieve "
                 "file {} from {} domain".format(
-                filename,
-                domain))
+                    filename,
+                    domain))
         if not _file:
             # Empty file node
             return ""
@@ -1643,7 +1664,8 @@ class DataPower(object):
                 self.log_error(
                     "Attempted to overwrite file with overwrite set to False")
                 return False
-        if self.directory_exists(file_out, domain) or self.location_exists(file_out, domain):
+        if self.directory_exists(file_out, domain) or \
+                self.location_exists(file_out, domain):
             file_out = "{}/{}".format(file_out, os.path.basename(file_in))
             file_out = file_out.replace("//", "/")
         # Fix for leading and trailing whitespace in the filename
@@ -1672,7 +1694,9 @@ class DataPower(object):
             ...     backup=False,
             ...     local_dir="tmp")
             >>> print resp
-            <env:Envelope xmlns:dp="http://www.datapower.com/schemas/management" xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+            <env:Envelope \
+                xmlns:dp="http://www.datapower.com/schemas/management" \
+                xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
               <env:Body>
                 <dp:response>
                   <dp:timestamp>2015-01-12T17:20:26-05:00</dp:timestamp>
@@ -1757,7 +1781,8 @@ class DataPower(object):
         doc = etree.Element("filesystem")
         doc.set('name', 'temporary')
         for location in locations:
-            _filestore = self.get_filestore(domain="default", location=location)
+            _filestore = self.get_filestore(
+                domain="default", location=location)
             doc.append(_filestore.xml.find(FILESTORE_XPATH))
         return DPResponse(etree.tostring(doc))
 
@@ -1777,12 +1802,16 @@ class DataPower(object):
             >>> print len(dp._history)
             9
         """
-        locations = ["local:", "store:", "logstore:", "cert:", "pubcert:",
-            "sharedcert:", "chkpoints:", "config:", "tasktemplates:"]
+        locations = ["local:", "store:",
+                     "logstore:", "cert:",
+                     "pubcert:", "sharedcert:",
+                     "chkpoints:", "config:",
+                     "tasktemplates:"]
         doc = etree.Element("filesystem")
         doc.set('name', 'encrypted')
         for location in locations:
-            _filestore = self.get_filestore(domain="default", location=location)
+            _filestore = self.get_filestore(
+                domain="default", location=location)
             doc.append(_filestore.xml.find(FILESTORE_XPATH))
         return DPResponse(etree.tostring(doc))
 
@@ -1878,8 +1907,9 @@ class DataPower(object):
 
     @correlate
     @logged
-    def copy_directory(self, dp_path, local_path, domain='default',
-        recursive=True, filestore=None):
+    def copy_directory(self, dp_path,
+                       local_path, domain='default',
+                       recursive=True, filestore=None):
         """
         ## DataPower.copy_directory
 
@@ -1899,7 +1929,8 @@ class DataPower(object):
             True
             >>> print os.path.isdir("tmp/local/baz")
             True
-            >>> for _dir in ["tmp/local/foo", "tmp/local/bar", "tmp/local/baz"]:
+            >>> for _dir in ["tmp/local/foo", "tmp/local/bar", \
+            "tmp/local/baz"]:
             ...     print os.path.isfile(os.path.join(_dir, "foo.xml"))
             ...     print os.path.isfile(os.path.join(_dir, "bar.xml"))
             ...     print os.path.isfile(os.path.join(_dir, "baz.xml"))
@@ -1934,11 +1965,13 @@ class DataPower(object):
         if filestore is None:
             location = '{}:'.format(dp_path.split(':')[0])
             try:
-                filestore = self.get_filestore(domain=domain, location=location)
+                filestore = self.get_filestore(
+                    domain=domain, location=location)
             except TypeError:
                 self.log_error(
-                    "Error reading directory: %s, request: %s, response: %s" % (
-                    dir, self.request, self.last_response.read()))
+                    "Error reading directory"
+                    ": %s, request: %s, response: %s" % (
+                        dir, self.request, self.last_response.read()))
                 return None
 
         files = self.ls(
@@ -1950,7 +1983,8 @@ class DataPower(object):
         for file in files:
             self.log_info("Getting file {}".format(file))
             if file.endswith("/"):
-                _local_path = os.path.join(local_path, file[:-1].split("/")[-1])
+                _local_path = os.path.join(
+                    local_path, file[:-1].split("/")[-1])
                 try:
                     os.makedirs(_local_path)
                 except:
@@ -1965,7 +1999,6 @@ class DataPower(object):
             with open(filename, 'wb') as fout:
                 fname = '{}/{}'.format(dp_path, file)
                 fout.write(self.getfile(domain=domain, filename=fname))
-
 
     @correlate
     @logged
@@ -1993,11 +2026,13 @@ class DataPower(object):
         location = '{}:'.format(dir.split(':')[0])
         if filestore is None:
             try:
-                filestore = self.get_filestore(domain=domain, location=location)
+                filestore = self.get_filestore(
+                    domain=domain, location=location)
             except TypeError:
                 self.log_error(
-                    "Error reading directory: %s, request: %s, response: %s" % (
-                    dir, self.request, self.last_response.read()))
+                    "Error reading directory: "
+                    "%s, request: %s, response: %s" % (
+                        dir, self.request, self.last_response.read()))
                 return None
         fs = filestore.xml.find(FILESTORE_XPATH)
         directory = fs.find('.//directory[@name="{}"]'.format(dir))
@@ -2023,9 +2058,11 @@ class DataPower(object):
 
     @correlate
     @logged
-    def do_import(self, domain, zip_file, deployment_policy=None,
-             dry_run=False, overwrite_files=True, overwrite_objects=True,
-             rewrite_local_ip=True, source_type='ZIP'):
+    def do_import(self, domain,
+                  zip_file, deployment_policy=None,
+                  dry_run=False, overwrite_files=True,
+                  overwrite_objects=True, rewrite_local_ip=True,
+                  source_type='ZIP'):
         '''
         ## DataPower.import
 
@@ -2060,7 +2097,7 @@ class DataPower(object):
     @correlate
     @logged
     def add_static_route(self, ethernet_interface,
-        destination, gateway, metric):
+                         destination, gateway, metric):
         '''
         ## DataPower.add_static route
 
@@ -2089,12 +2126,12 @@ class DataPower(object):
             self.log_error(
                 "Tried to add static route to ethernet "
                 "interface {} which doesn't appear to exist. Aborting".format(
-                ethernet_interface))
+                    ethernet_interface))
             return None
         # Begin building the request to add the static route
         self.request.clear()
         new_config = self.request.request(domain="default").modify_config\
-                     .EthernetInterface(name=ethernet_interface)
+            .EthernetInterface(name=ethernet_interface)
 
         flag = False
         for child in new_config.valid_children():
@@ -2140,12 +2177,12 @@ class DataPower(object):
             self.log_error(
                 "Tried to remove static route to ethernet interface "
                 "{} which doesn't appear to exist. Aborting".format(
-                ethernet_interface))
+                    ethernet_interface))
             return None
         # Begin building the request to add the static route
         self.request.clear()
         new_config = self.request.request(domain="default").set_config\
-                     .EthernetInterface(name=ethernet_interface)
+            .EthernetInterface(name=ethernet_interface)
 
         for child in new_config.valid_children():
             if existing_config.find(child) is not None:
@@ -2178,10 +2215,11 @@ class DataPower(object):
         '''
         # Because of the way SOMA works, if we try and just add a secondary
         # interface it will remove the rest of that ethernet interface's
-        # configuration. To remedy this we first grab the existing configuration
-        # and append it to the request to add the secondary ip effectively
-        # rewriting it's entire configuration...Seems inefficient, but
-        # otherwise we're stuck doing this step manually
+        # configuration. To remedy this we first grab the existing
+        # configuration and append it to the request to add the
+        # secondary ip effectively rewriting it's entire configuration...
+        # Seems inefficient, but otherwise we're stuck doing this
+        # step manually
         self.domain = "default"
         self.request.clear()
         xpath = CONFIG_XPATH + 'EthernetInterface[@name="%s"]' % (
@@ -2360,7 +2398,7 @@ class DataPower(object):
         self.request.clear()
 
         HA = self.request.request(domain='default').set_config.\
-             HostAlias(name=name)
+            HostAlias(name=name)
         HA.mAdminState(admin_state)
         HA.IPAddress(ip)
         resp = self.send_request(boolean=True)
@@ -2382,7 +2420,7 @@ class DataPower(object):
         self.request.clear()
 
         self.request.request(domain='default').del_config.\
-             HostAlias(name=name)
+            HostAlias(name=name)
         resp = self.send_request(boolean=True)
         return resp
 
@@ -2394,8 +2432,8 @@ class DataPower(object):
         """
         ## DataPower.export
 
-        Exports an object/service from the appliance. Returns the base64 decoded
-        string ready for writing to a file.
+        Exports an object/service from the appliance. Returns
+        the base64 decoded string ready for writing to a file.
 
         TODO: Write tests for this function
         """
@@ -2470,16 +2508,18 @@ class DataPower(object):
                 "and retrying.")
         except:
             self.log_error(
-                "There was an error retrieving a backup from {}".format(domain))
+                "There was an error retrieving a backup from {}".format(
+                    domain))
             raise
         return base64.decodestring(_file)
 
     @correlate
     @logged
-    def restore_normal_backup(self, file_in, domain, source_type="ZIP",
-        overwrite_files=True, overwrite_objects=True, rewrite_local_ip=True,
-        deployment_policy=None, import_domain=True, reset_domain=True,
-        dry_run=False):
+    def restore_normal_backup(self, file_in, domain,
+                              source_type="ZIP", overwrite_files=True,
+                              overwrite_objects=True, rewrite_local_ip=True,
+                              deployment_policy=None, import_domain=True,
+                              reset_domain=True, dry_run=False):
         """
         ## DataPower.restore_normal_backup
 
@@ -2845,8 +2885,9 @@ class DataPower(object):
 
     @correlate
     @logged
-    def get_config(self, _class=None, name=None, recursive=False,
-        persisted=True, domain='default'):
+    def get_config(self, _class=None,
+                   name=None, recursive=False,
+                   persisted=True, domain='default'):
         """
         ## DataPower.get_config
 
@@ -2886,7 +2927,7 @@ class DataPower(object):
             # Guess at a good log directory
             config = get_config("logging.conf")
             log_dir = config.get("from_appliance", "log_dir")
-        if not os.path.sep in dir:
+        if os.path.sep not in dir:
             new_dir = "{}-{}-log-dump".format(
                 timestamp.timestamp, self.hostname)
             log_dir = os.path.join(log_dir, new_dir)
