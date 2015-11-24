@@ -549,8 +549,12 @@ class DataPower(object):
                 sleep(0.25)
             while self._ssh_conn.recv_ready():
                 resp = self._ssh_conn.recv(1024)
-            resp = self.ssh_issue_command('%s\n%s\n%s\n' % (
-                username, password, domain))
+            resp = self.ssh_issue_command("{}\n".format(username))
+            resp = self.ssh_issue_command("{}\n".format(password))
+            if resp.strip().lower().endswith("login:"):
+                raise AuthenticationFailure(
+                    "Invalid credentials provided, please ensure "
+                    "that account is not locked")
 
             self.log_info("SSH session now active")
         except paramiko.SSHException, e:
@@ -705,7 +709,11 @@ class DataPower(object):
             return True
         elif re.match('.*?\[y/n\]', resp.splitlines()[-1]):
             return True
-        elif 'login:' in resp:
+        elif resp.strip().lower().endswith('login:'):
+            return True
+        elif resp.strip().lower().endswith('password:'):
+            return True
+        elif resp.strip().lower().endswith("domain (? for all):"):
             return True
         return False
 
@@ -1607,7 +1615,8 @@ class DataPower(object):
         if not overwrite:
             if self.file_exists(filename, domain):
                 _hist = {
-                    "request": "Attempted set-file with overwrite set to False",
+                    "request": "Attempted set-file with "
+                               "overwrite set to False",
                     "response": "File exists, aborting..."}
                 self._history.append(_hist)
                 self.log_error(
