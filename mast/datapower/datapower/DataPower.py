@@ -555,6 +555,7 @@ class DataPower(object):
                 raise AuthenticationFailure(
                     "Invalid credentials provided, please ensure "
                     "that account is not locked")
+            resp = self.ssh_issue_command("{}\n".format(domain))
 
             self.log_info("SSH session now active")
         except paramiko.SSHException, e:
