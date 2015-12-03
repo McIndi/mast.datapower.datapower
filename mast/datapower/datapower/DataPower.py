@@ -1,3 +1,10 @@
+"""
+A library which provides various utilities for interacting with IBM
+DataPower appliances. The most important of which is the DataPower
+class which provides many convenient wrappers around the SOMA XML
+Management Interface as well as some methods to interact with the CLI
+Management Interface (ssh).
+"""
 from dpSOMALib import SomaRequest as Request
 import xml.etree.cElementTree as etree
 from functools import partial, wraps
@@ -15,24 +22,42 @@ import re
 
 
 class AuthenticationFailure(Exception):
+    """
+    Raised when the appliance responds with a 200 status code,
+    but includes `Authentication Failure` in the response body
+    """
     pass
 
 
 class FailedToRetrieveBackup(Exception):
+    """
+    Raised when the appliance sends back a response containing an
+    empty file node when asked for a normal backup. This usually
+    means an intermediate failure or too little space in
+    `temporary:///` to store the export. This can usually be fixed
+    by cleaning up the filesystem or trying again.
+    """
     pass
 
 
 class SSHTimeoutError(Exception):
+    """
+    Raised when the appliance takes longer to respond to a cli
+    command than the specified timeout.
+    """
     pass
 
 try:
-    # BEGIN HACK
-    # This should be removed as soon as this issue is resoleved in
-    # PyCrypto package: https://github.com/dlitz/pycrypto/issues/149
     import Crypto.Cipher.AES
     orig_new = Crypto.Cipher.AES.new
 
     def fixed_AES_new(key, *ls):
+        """
+        __Internal Use__
+
+        This is a workaround to
+        [this bug](https://github.com/dlitz/pycrypto/issues/149)
+        """
         if Crypto.Cipher.AES.MODE_CTR == ls[0]:
             ls = list(ls)
             ls[1] = ''
@@ -47,14 +72,32 @@ except ImportError:
 
 
 def format_args(args):
+    """
+    __Internal Use__
+
+    This function formats arguments passed to functions for
+    debug logging purposes.
+    """
     return ", ".join(("'" + str(arg) + "'" for arg in args))
 
 
 def format_kwargs(kwargs):
+    """
+    __Internal Use__
+
+    This function formats keyword-arguments passed to functions for
+    debug logging purposes.
+    """
     return str(kwargs).replace("{", "").replace("}", "").replace(": ", "=")
 
 
 def format_arguments(args, kwargs):
+    """
+    __Internal Use__
+
+    This function formats arguments and keyword arguments
+    passed to functions for debug logging purposes.
+    """
     arguments = ""
     if args:
         arguments += format_args(args)
@@ -66,6 +109,12 @@ def format_arguments(args, kwargs):
 
 
 def _escape(string):
+    """
+    __Internal Use__
+
+    This function removes newlines and escapes single and double
+    quotations
+    """
     return string.replace(
         "\n", "").replace(
         "\r", "").replace(
@@ -74,7 +123,8 @@ def _escape(string):
 
 
 def logged(func):
-    """decorator which logs start and stop for a function"""
+    """decorator which logs start and stop for a function along with
+    arguments and keyword arguments passed in."""
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         # Log a message saying we are executing func
@@ -117,8 +167,11 @@ def logged(func):
 
 
 def correlate(func):
-    """Decorator which changes self.correlation_id before executing
-    a function and changes it back to it's previous value after execution"""
+    """
+    Decorator which changes self.correlation_id before executing
+    a function and changes it back to it's previous value after
+    execution
+    """
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         old_correlation_id = self.correlation_id
@@ -147,10 +200,15 @@ FILESTORE_XPATH += '{http://www.datapower.com/schemas/management}filestore/'
 
 def pretty_print(elem, level=0):
     """
-    pretty_print: I took this from several places on the internet
-        If you know where this originated, please email me at
-        ilovetux@ymail.com and I will provide proper credits
-        OPEN SOURCE RULES!!
+    Given an xml.etree.ElementTree.Element, insert whitespace
+    so that when xml.etree.ElementTree.tostring is called on
+    it, it will be pretty-printed.
+
+    Usage: pretty_print(elem, level=0)
+
+    * elem - Should be an instance of xml.etree.ElementTree.Element
+    * level - Used by function itself for recursive calls should not
+    be passed in by user
     """
     i = "\n" + "  " * level
     if len(elem):
@@ -170,23 +228,17 @@ def pretty_print(elem, level=0):
 class DPResponse(object):
     def __init__(self, response):
         """
-            :DPResponse:
+        This is a generic response object it is used like this:
 
-            This is a generic response object it is used like this:
-
-                >>> dp = DataPower('hostname', 'user:password')
-                >>> resp = dp.get_config('EthernetInterface')
-                >>> print resp.text
-                XML (string) Response with newlines removed and \
-                spaces collapsed
-                >>> print resp.xml
-                xml.etree.cElementTree ElementTree object
-                >>> print resp.pretty
-                Pretty-Printed xml string
-                >>> str(resp)
-                equivalent to resp.pretty
-                >>> repr(resp)
-                equivalent to resp.text
+            #!python
+            dp = DataPower('hostname', 'user:password')
+            resp = dp.get_config('EthernetInterface')
+            # resp is now an instance of DPResponse
+            print resp.text
+            print resp.xml
+            print resp.pretty
+            str(resp)
+            repr(resp)
         """
         self.text = response.replace(
             '\r', '').replace('\n', '').replace('  ', ' ')
@@ -194,8 +246,6 @@ class DPResponse(object):
     @property
     def xml(self):
         """
-        :DPResponse.xml:
-
         Returns an xml.etree.cElementTree object created by parsing
         the response. This is cached after the first call.
         """
@@ -215,8 +265,6 @@ class DPResponse(object):
     @property
     def pretty(self):
         """
-        :DPResponse.pretty:
-
         Returns a pretty-printed string of the response XML.
         This is cached after the first call.
         """
@@ -227,7 +275,7 @@ class DPResponse(object):
 
     def __str__(self):
         """
-        :DPResponse.__str__:
+        Same as DPResponse.pretty
 
         Returns a pretty-printed string of the response XML.
         This is cached after the first call.
@@ -236,7 +284,7 @@ class DPResponse(object):
 
     def __repr__(self):
         """
-        :DPResponse.__repr__:
+        Same as DPResponse.text
 
         Returns a string containing the response with newlines removed
         and whitespace collapsed.
@@ -246,23 +294,21 @@ class DPResponse(object):
 
 class BooleanResponse(DPResponse):
     """
-        :BooleanResponse(DPResponse):
+    This is a DPResponse object with one additional property
+    it will attempt to convey the success of the action through
+    the __bool__ magic method, so a test like:
 
-        This is a DPResponse object with one additional property
-        it will attempt to convey the success of the action through
-        the __bool__ magic method, so a test like:
+        if resp:
+            success
+        else:
+            failure
 
-            if resp:
-                success
-            else:
-                failure
+    will work.
 
-        will work.
-
-        This is automatically used instead of DPResponse automatically
-        when a DataPower Method involving a do-action is called as well
-        as a few other methods which are known to return 'OK' surrounded
-        by copious amounts of whitespace.
+    This is automatically used instead of DPResponse automatically
+    when a DataPower Method involving a do-action is called as well
+    as a few other methods which are known to return 'OK' surrounded
+    by copious amounts of whitespace.
     """
     def __nonzero__(self):
         if 'OK' in self.text:
@@ -272,23 +318,24 @@ class BooleanResponse(DPResponse):
 
 class AMPBooleanResponse(DPResponse):
     """
-        :BooleanResponse(DPResponse):
+    Returned when an AMP request is issued, this is currently
+    only used on DataPower.firmware_upgrade()
 
-        This is a DPResponse object with one additional property
-        it will attempt to convey the success of the action through
-        the __bool__ magic method, so a test like:
+    This is a DPResponse object with one additional property
+    it will attempt to convey the success of the action through
+    the __bool__ magic method, so a test like:
 
-            if resp:
-                success
-            else:
-                failure
+        if resp:
+            success
+        else:
+            failure
 
-        will work.
+    will work.
 
-        This is automatically used instead of DPResponse automatically
-        when a DataPower Method involving a do-action is called as well
-        as a few other methods which are known to return 'OK' surrounded
-        by copious amounts of whitespace.
+    This is automatically used instead of DPResponse automatically
+    when a DataPower Method involving a do-action is called as well
+    as a few other methods which are known to return 'OK' surrounded
+    by copious amounts of whitespace.
     """
     def __nonzero__(self):
         if '>ok<' in self.text:
@@ -298,13 +345,14 @@ class AMPBooleanResponse(DPResponse):
 
 class StatusResponse(DPResponse):
     """
-        :StatusResponse(DPResponse):
+    __WARNING__: This implementation is currently broken, but will
+    be fixed soon.
 
-        This is a DPResponse object with one additional property
-        dictionary which returns the response as a python dict.
+    This is a DPResponse object with one additional property
+    dictionary which returns the response as a python dict.
 
-        This is automatically used instead of DPResponse automatically
-        when DataPower.get_status() is called.
+    This is automatically used instead of DPResponse automatically
+    when DataPower.get_status() is called.
     """
     @property
     def dictionary(self):
@@ -321,13 +369,14 @@ class StatusResponse(DPResponse):
 
 class ConfigResponse(DPResponse):
     """
-        :ConfigResponse(DPResponse):
+    __WARNING__: This implementation is currently broken, but will
+    be fixed soon.
 
-        This is a DPResponse object with one additional property
-        dictionary which returns the response as a python dict
+    This is a DPResponse object with one additional property
+    dictionary which returns the response as a python dict
 
-        This is automatically used instead of DPResponse automatically
-        when DataPower.get_config() is called.
+    This is automatically used instead of DPResponse automatically
+    when DataPower.get_config() is called.
     """
     @property
     def dictionary(self):
@@ -347,21 +396,17 @@ logger.addHandler(logging.NullHandler())
 
 class DataPower(object):
     """
-    # class DataPower
-
     This class represents an IBM DataPower appliance. It contains
     numerous convenience methods which are available for use in
     your scripts.
 
     Everything is lazy in this class. Instanciation will not prompt
     any information to be sent to or from the appliance being
-   represented.
+    represented.
 
-        >>> dp = DataPower("localhost", "user:pass")
-        >>> print dp.hostname
-        localhost
-        >>> print dp.credentials
-        user:pass
+        dp = DataPower("localhost", "user:pass")
+        print dp.hostname
+        print dp.domains
     """
 
     def __init__(self, hostname, credentials, domain='default',
@@ -369,8 +414,6 @@ class DataPower(object):
                  test_case='etc/v7000-xi52.xml', web_port='9090',
                  ssh_port=22, environment=None, check_hostname=True):
         """
-        ## DataPower.__init__()
-
         This method instanciates an instance of a DataPower object.
         It accepts the following parameters:
 
@@ -393,27 +436,8 @@ class DataPower(object):
         * environment - The environment you want this instance to be associated
         with in the logs.
 
-            >>> dp = DataPower("localhost", "user:pass")
-            >>> print dp.hostname
-            localhost
-            >>> print dp.credentials
-            user:pass
-            >>> print dp.scheme
-            https
-            >>> print dp.port
-            5550
-            >>> print dp.web_port
-            9090
-            >>> print dp.ssh_port
-            22
-            >>> print dp.uri
-            /service/mgmt/current
-            >>> print dp.test_case
-            etc/v7000-xi52.xml
-            >>> print dp.domain
-            default
-            >>> print dp.environment
-            -"""
+            dp = DataPower("localhost", "user:pass")
+        """
         hosts_config = get_config("hosts.conf")
         self.session_id = random.randint(1000000, 9999999)
         self.correlation_id = None
@@ -485,32 +509,26 @@ class DataPower(object):
 
     def get_logger(self):
         """
-        ## DataPower.get_logger
+        __TODO__: This will eventually be changed to use
+        mast.logging.make_logger in order to be incorperated
+        with the MAST logging system.
 
         Returns a logging.Logger instance associated with this appliance.
         The logger will be configured according to logging.conf in the section
         "appliance".
 
-            >>> dp = DataPower("localhost", "user:pass")
-            >>> print type(dp.get_logger())
-            <class 'logging.Logger'>
+            dp = DataPower("localhost", "user:pass")
+            logger = dp.get_logger()
+            logger.info("Informational message")
+            logger.debug("Debug message")
         """
         logger = logging.getLogger("DataPower.{}".format(self.hostname))
-#        user = self.credentials.split(":")[0]
-#        if not hasattr(self, "_logger"):
-#            self._logger = make_logger(
-#                "{}.{}.{}".format(
-#                    self.hostname,
-#                    user,
-#                    Timestamp().timestamp))
         return logger
 
     @correlate
     @logged
     def ssh_connect(self, domain='default', port=22, timeout=120):
         """
-        :DataPower.ssh_connect:
-
         This will attempt to connect to the DataPower appliance over SSH.
         Once connected you can issue commands with DataPower.ssh_issue_command.
 
@@ -567,8 +585,6 @@ class DataPower(object):
     @logged
     def ssh_is_connected(self):
         """
-        :DataPower.ssh_is_connected:
-
         Returns True if there is an active SSH connection to the appliance
         initiated through DataPower.ssh_connect.
         """
@@ -590,8 +606,6 @@ class DataPower(object):
     @logged
     def ssh_disconnect(self):
         """
-        :DataPower.ssh_disconnect:
-
         Disconnects the current SSH session as initiated through
         DataPower.ssh_connect.
         """
@@ -615,8 +629,6 @@ class DataPower(object):
     @logged
     def ssh_issue_command(self, command, timeout=120):
         """
-        :DataPower.ssh_issue_command:
-
         Issues a command through the SSH session as initiated through
         DataPower.ssh_connect.
         """
@@ -675,30 +687,29 @@ class DataPower(object):
     @logged
     def ssh_finished_command(self, resp):
         """
-        :DataPower.ssh_finished_command:
-
         Returns True if the appliance has finished executing the last command
         and we received all of the output.
+
+        What we do here is check various conditions (all known responses
+        that DataPower could give for any command) to see if
+        the appliance has sent back a valid response.
+
+        First we check a regular expression to see if the prompt of the
+        DataPower CLI (ie. 'xi52#' or 'xi52(config)#') is present on the
+        last line of the response.
+
+        Second we check if 'Goodbye' is in the response. This handles the
+        case when you type exit for the last time to end a session.
+
+        Third we match a regular expression to see if the string '[y/n]'
+        is present on the end of the line. This handles the case when
+        DataPower is asking you to say yes or no.
+
+        Finally we check to see if "login:, "Password:" or
+        "domain (? for all)" is in the response to handle
+        the case when you provided invalid credentials
         """
-        # OK, This feels hackish, but all of the other approaches on the
-        # internet felt even more hackish. What we do here is check various
-        # conditions (all known responses that DataPower could give for any
-        #  command) to see if the appliance has sent back a valid response.
-        #
-        # First we check a regular expression to see if the prompt of the
-        # DataPower CLI (ie. 'xi52#' or 'xi52(config)#') is present on the
-        # last line of the response.
-        #
-        # Second we check if 'Goodbye' is in the response. This handles the
-        # case when you type exit for the last time to end a session.
-        #
-        # Third we match a regular expression to see if the string '[y/n]'
-        # is present on the end of the line. This handles the case when
-        # DataPower is asking you to say yes or no.
-        #
-        # Finally we check to see if "login:" is in the response to handle
-        # the case when you provided invalid credentials
-        # import re
+        import re
         if self._ssh_conn.recv_ready():
             return False
         if re.match('.*?:x[a-z].*#|x[a-z].*#', resp.splitlines()[-1]):
@@ -721,8 +732,6 @@ class DataPower(object):
     @logged
     def send_request(self, status=False, config=False, boolean=False):
         """
-        ## DataPower.send_request
-
         This method attempts to send the objects current request
         to the appliance. Use this instead of DataPower.request.send()
         because this will ensure that each action is logged and the
@@ -783,8 +792,6 @@ class DataPower(object):
 
     def log_debug(self, message):
         """
-        ## DataPower.log_debug
-
         Log a debug level message through the appliances logger.
         """
         logger = self.get_logger()
@@ -799,8 +806,6 @@ class DataPower(object):
 
     def log_info(self, message):
         """
-        ## DataPower.log_info
-
         Log a information level message through the appliances logger.
         """
         logger = self.get_logger()
@@ -815,8 +820,6 @@ class DataPower(object):
 
     def log_warn(self, message):
         """
-        ## DataPower.log_warn
-
         Log a warning level message through the appliances logger.
         """
         logger = self.get_logger()
@@ -831,11 +834,9 @@ class DataPower(object):
 
     def log_error(self, message, get_logs=False):
         """
-        ## DataPower.log_error
-
         Log a error level message through the appliances logger.
 
-        NOTE: If you provide get_logs then we will attempt to
+        __NOTE__: If you provide get_logs then we will attempt to
         retrieve all of the logs from the appliance.
         """
         logger = self.get_logger()
@@ -855,11 +856,9 @@ class DataPower(object):
 
     def log_critical(self, msg, get_logs=False):
         """
-        ## DataPower.log_critical
-
         Log a critical level message through the appliances logger.
 
-        NOTE: If you provide get_logs then we will attempt to
+        __NOTE__: If you provide get_logs then we will attempt to
         retrieve all of the logs from the appliance.
         """
         logger = self.get_logger()
@@ -879,12 +878,10 @@ class DataPower(object):
     @logged
     def is_reachable(self):
         """
-        ## DataPower.is_reachable
-
         Returns True if the appliance is reachable with the information
         passed to the constructor. Returns False otherwise.
 
-        ### Implementation Note
+        __Implementation Note__:
 
         This method atttempts to query Version from the appliance
         then it attemps to parse it as xml, and it verifies that
@@ -896,7 +893,8 @@ class DataPower(object):
             True
             >>> dp = DataPower("does_not_exist", "user:pass")
             >>> print dp.is_reachable()
-            False"""
+            False
+        """
         self.request.clear()
 
         try:
@@ -911,8 +909,6 @@ class DataPower(object):
     @logged
     def check_xml_mgmt(self):
         """
-        ## DataPower.check_xml_mgmt
-
         Returns True if we can connect to the xml mgmt interface with the
         information passed to the constructor otherwise returns False.
         Please see the doc string of DataPower.is_reachable to see the
@@ -934,12 +930,12 @@ class DataPower(object):
     @logged
     def check_web_mgmt(self):
         """
-        ## DataPower.check_web_mgmt
-
         Returns True if we are able to connect to the appliance's web gui.
         Otherwise returns False.
+
         This uses the information passed into the constructor as well as
-        settings configured in $MAST_HOME/etc/local/appliances.conf"""
+        settings configured in $MAST_HOME/etc/local/appliances.conf
+        """
         import urllib2
         import ssl
         context = ssl.create_default_context()
@@ -960,8 +956,6 @@ class DataPower(object):
     @logged
     def check_cli_mgmt(self):
         """
-        ## DataPower.check_cli_mgmt
-
         Returns True if we can connect to the appliance via SSH otherwise
         returns False. This uses information passed to the constructor
         as well as settings configured in $MAST_HOME/etc/local/appliances.conf
@@ -976,7 +970,7 @@ class DataPower(object):
     @logged
     def _add_dynamic_methods(self):
         """
-        DataPower._add_dynamic_methods:
+        __Internal Use__
 
         This method builds methods dynamically builds and adds methods
         to the DataPower object based on the do-action functions provided
@@ -994,7 +988,7 @@ class DataPower(object):
     @logged
     def do_action(self, action, **kwargs):
         """
-        ## DataPower.do_action
+        __Internal Use__
 
         This is a generic function meant to implement the dynamic
         methods created by _add_dynamic_methods.
@@ -1025,8 +1019,6 @@ class DataPower(object):
     @property
     def environment(self):
         '''
-        ## DataPower.environment:
-
         The environment this appliance belongs to. Returns "-" if
         this appliance does not belong to an environment otherwise
         it returns a string of environments seperated by commas.
@@ -1056,8 +1048,8 @@ class DataPower(object):
 
     @property
     def extra(self):
-        '''
-        ## DataPower.extra
+        """
+        __Internal Use__
 
         A dictionary to be used with log formatting, but
         there could be other uses for this function, because it
@@ -1080,7 +1072,7 @@ class DataPower(object):
             True
             >>> print "foo" in dp.extra
             False
-        '''
+        """
         user = self.credentials.split(':')[0]
         return {'hostname': self.hostname,
                 'domain': self.domain,
@@ -1093,8 +1085,6 @@ class DataPower(object):
     @logged
     def domains(self):
         """
-        ## DataPower.domains
-
         A (per-session) cached list of all domains on this DataPower.
 
             >>> dp = DataPower('localhost', 'user:pass')
@@ -1112,8 +1102,6 @@ class DataPower(object):
     @logged
     def users(self):
         """
-        ## DataPower.users
-
         A current list of all users on this DataPower.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1131,8 +1119,6 @@ class DataPower(object):
     @logged
     def groups(self):
         """
-        ## DataPower.groups
-
         A current list of user groups on the appliance
         (running configuration).
 
@@ -1151,8 +1137,6 @@ class DataPower(object):
     @logged
     def raid_directory(self):
         """
-        ## DataPower.raid_directory
-
         The directory at which the raid volume is mounted.
         This is cached as soon as requested.
 
@@ -1171,9 +1155,7 @@ class DataPower(object):
     @logged
     def fallback_users(self):
         """
-        ## DataPower.fallback_users
-
-        Returns a list of users configured as RBM fallback users.
+        A list of users configured as RBM fallback users.
 
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.fallback_users
@@ -1189,13 +1171,11 @@ class DataPower(object):
     @logged
     def history(self):
         """
-        ## DataPower.history
-
         Returns a string containing the complete history of request/response
         to/from the appliance. Each line is prefixed with either "request: "
         or "response: ". They are in chronological order.
 
-        Note: This property is derived from DataPower._history which is a
+        __Note__: This property is derived from DataPower._history which is a
         list of dictionaries. Each dictionary has two keys
         "request" and "response" corresponding to a request sent to the
         appliance and the response received from the appliance.
@@ -1225,12 +1205,10 @@ class DataPower(object):
     @logged
     def add_user(self, username, password, privileged=False, user_group=None):
         """
-        DataPower.add_user
-
         Adds a user to this appliance with the specified username,
         password, access-level or user-group.
 
-        NOTE:
+        __NOTE__:
 
         If privileged is set to True then user_group
         doesn't need to be provided. Also if user_group is specified
@@ -1277,8 +1255,6 @@ class DataPower(object):
     @logged
     def change_password(self, username, password):
         """
-        ## DataPower.change_password
-
         changes a user's password to password.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1304,8 +1280,6 @@ class DataPower(object):
     @logged
     def remove_user(self, username):
         """
-        DataPower.remove_user
-
         Removes a local user from this appliance.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1324,13 +1298,9 @@ class DataPower(object):
     @logged
     def ssh_del_rbm_fallback(self, usernames):
         """
-        ## DataPower.ssh_del_rbm_fallback
-
         Removes a user from RBM fallback. This function uses
         SSH to accomplish the task eliminating the need for
         for complex and fragile "vector-add" functions.
-
-        TODO: Test, but will require a ssh stub
         """
         if isinstance(usernames, str):
             usernames = [usernames]
@@ -1353,13 +1323,9 @@ class DataPower(object):
     @logged
     def ssh_add_rbm_fallback(self, usernames):
         """
-        ## DataPower.ssh_add_rbm_fallback
-
         Adds a user to RBM fallback. This function uses
         SSH to accomplish the task eliminating the need for
         for complex and fragile "vector-add" functions.
-
-        TODO: Test, but will require a ssh stub
         """
         if isinstance(usernames, str):
             usernames = [usernames]
@@ -1382,8 +1348,6 @@ class DataPower(object):
     @logged
     def del_rbm_fallback(self, username):
         '''
-        ## DataPower.del_rbm_fallback
-
         Removes a fallback user from rbm configuration.
         Returns a BooleanResponse object created with the
         DataPower response.
@@ -1395,8 +1359,6 @@ class DataPower(object):
             >>> # This should go through 2 request/response cycles
             >>> print len(dp._history)
             2
-
-        TODO: Better test, but will require a big change to stub_server
         '''
         self.request.clear()
         xpath = CONFIG_XPATH + 'RBMSettings[@name="RBM-Settings"]'
@@ -1431,8 +1393,6 @@ class DataPower(object):
     @logged
     def add_rbm_fallback(self, user):
         '''
-        ## DataPower.add_rbm_fallback
-
         adds a fallback user to specified rbm configuration.
         Returns a BooleanResponse object created with the
         DataPower response.
@@ -1445,15 +1405,16 @@ class DataPower(object):
             >>> print len(dp._history)
             3
 
-        TODO: Better test, but will require a big change to stub_server
+        __Implementation Detail__
+
+        Because of the way SOMA works, if we try and just add a fallback
+        user it will remove the rest of that fallback user's
+        configuration. To remedy this we first grab
+        the existing configuration and append it to the request to
+        add the fallback user effectively rewriting it's entire
+        configuration...Seems inefficient, but otherwise we're
+        stuck doing this step manually
         '''
-        # Because of the way SOMA works, if we try and just add a fallback
-        # user it will remove the rest of that fallback user's
-        # configuration. To remedy this we first grab
-        # the existing configuration and append it to the request to
-        # add the fallback user effectively rewriting it's entire
-        # configuration...Seems inefficient, but otherwise we're
-        # stuck doing this step manually
         if user not in self.users:
             self.log_error("User {} does not exist. Exiting...".format(user))
             raise KeyError("User {} does not exist on appliance".format(user))
@@ -1494,8 +1455,6 @@ class DataPower(object):
                   admin_state="enabled",
                   local=True):
         """
-        ## DataPower.add_group
-
         Adds a user-group to this appliance. access_policies should be a
         list of strings containing access-policies to be applied to this
         user-group.
@@ -1527,8 +1486,6 @@ class DataPower(object):
     @logged
     def del_group(self, group):
         """
-        ## DataPower.del_group
-
         Removes a group from the appliance.
 
         Returns a BooleanResponse object created with the response from
@@ -1552,8 +1509,6 @@ class DataPower(object):
     @logged
     def getfile(self, domain, filename):
         """
-        ## DataPower.getfile:
-
         Retrieves a file from this appliance. Returns the contents
         base64 decoded and ready for writing to a file.
 
@@ -1592,8 +1547,6 @@ class DataPower(object):
     @logged
     def _set_file(self, contents, filename, domain, overwrite=True):
         """
-        ## DataPower._set_file
-
         Uploads a file to DataPower.
 
         Parameters:
@@ -1633,8 +1586,6 @@ class DataPower(object):
     @logged
     def set_file(self, file_in, file_out, domain, overwrite=True):
         '''
-        ## DataPower.set_file
-
         To upload a file to a specific domain and location on this
         DataPower.
 
@@ -1660,10 +1611,6 @@ class DataPower(object):
             ...     file_out="local:/foo/foo.xml",
             ...     domain="default",
             ...     overwrite=False)
-            >>> # Here we should fail because the stub server will
-            >>> # report that "local:/foo/foo.xml" exists and we
-            >>> # pass in "overwrite=False" so we should log a message
-            >>> # and return False
             >>> print resp
             False
             >>> print len(dp._history)
@@ -1692,8 +1639,6 @@ class DataPower(object):
     @logged
     def del_file(self, domain, filename, backup=False, local_dir="tmp"):
         """
-        ## DataPower.del_file
-
         Removes a file from the DataPower in the specified domain. If backup
         is True it will copy the file into local_dir.
 
@@ -1736,8 +1681,6 @@ class DataPower(object):
     @logged
     def _get_local_file(self, file_in):
         """
-        ## DataPower._get_local_file
-
         This function will get a file on the local computer,
         base64 encode it so it is ready to be put into a set_file
         call.
@@ -1751,8 +1694,6 @@ class DataPower(object):
     @logged
     def get_filestore(self, domain, location='local:'):
         '''
-        ## DataPower.get_filestore
-
         This method returns a DPResponse object which contains the
         xml representing the filestore.
 
@@ -1775,8 +1716,6 @@ class DataPower(object):
     @logged
     def get_temporary_filesystem(self):
         """
-        ## DataPower.get_temporary_filesystem
-
         Returns an XML document as a DPResponse object which is a
         directory listing for the entire temporary filesystem.
 
@@ -1800,8 +1739,6 @@ class DataPower(object):
     @logged
     def get_encrypted_filesystem(self):
         """
-        ## DataPower.get_encrypted_filesystem
-
         Returns an XML document as a DPResponse object which is a
         directory listing for the entire encrypted filesystem.
 
@@ -1829,8 +1766,6 @@ class DataPower(object):
     @logged
     def directory_exists(self, directory, domain):
         """
-        ## DataPower.directory_exists:
-
         Returns True if dir is a directory in domain, False otherwise.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1857,8 +1792,6 @@ class DataPower(object):
     @logged
     def location_exists(self, location, domain):
         """
-        ## DataPower.location_exists
-
         Return True if location is a location False otherwise.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1883,8 +1816,6 @@ class DataPower(object):
     @logged
     def file_exists(self, filename, domain):
         """
-        ## DataPower.file_exists:
-
         Return True if filename exists in domain, otherwise return False
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -1921,8 +1852,6 @@ class DataPower(object):
                        local_path, domain='default',
                        recursive=True, filestore=None):
         """
-        ## DataPower.copy_directory
-
         This will copy the contents of dp_path to local_path.
 
             >>> import os
@@ -2015,8 +1944,6 @@ class DataPower(object):
     def ls(self, dir, domain='default', include_directories=True,
            filestore=None):
         """
-        ## DataPower.ls
-
         This will return a directory listing in the form of a python list.
         Files will have just the filename, but directories will have the
         location and the path in the standard notation.
@@ -2074,12 +2001,8 @@ class DataPower(object):
                   overwrite_objects=True, rewrite_local_ip=True,
                   source_type='ZIP'):
         '''
-        ## DataPower.import
-
         This function will import a zip file type configuration to the
         specified domain.
-
-        TODO: Write tests for this function
         '''
         self.domain = domain
         # Get zip file and base64 encode it to prepare it for travel.
@@ -2109,8 +2032,6 @@ class DataPower(object):
     def add_static_route(self, ethernet_interface,
                          destination, gateway, metric):
         '''
-        ## DataPower.add_static route
-
         adds a static route to the specified ethernet_interface.
         Returns a BooleanResponse object
 
@@ -2120,8 +2041,6 @@ class DataPower(object):
         * gateway: The IP address of the gateway
         * metric: more or less priority...the lower the number the higer
         priority
-
-        # TODO: Write tests for this function
         '''
         # We must retrieve the existing configuration first.
         # (see comments in add_secondary_address)
@@ -2163,16 +2082,12 @@ class DataPower(object):
     @logged
     def del_static_route(self, ethernet_interface, destination):
         '''
-        ## DataPower.del_static route
-
         adds a static route to the specified ethernet_interface.
         Returns a BooleanResponse object
 
         * ethernet_interface: The ethernet interface to which to add the
         static route
         * destination: The destination IP address
-
-        TODO: Write tests for this function
         '''
         # We must retrieve the existing configuration first.
         # (see comments in add_secondary_address)
@@ -2210,26 +2125,21 @@ class DataPower(object):
     @logged
     def add_secondary_address(self, ethernet_interface, secondary_address):
         '''
-        ## DataPower.add_secondary_address
-
-        adds a secondary ip address to specified ethernet interface.
+        Adds a secondary ip address to specified ethernet interface.
         Returns a BooleanResponse object
 
-        * DataPower: A DataPower object as defined in the include.DataPower
-        module
         * ethernet_interface: The ethernet interface to which to add the
         secondary IP
         * secondary_address: The address to add to the above interface
 
-        TODO: Write tests for this function
+        Because of the way SOMA works, if we try and just add a secondary
+        interface it will remove the rest of that ethernet interface's
+        configuration. To remedy this we first grab the existing
+        configuration and append it to the request to add the
+        secondary ip effectively rewriting it's entire configuration...
+        Seems inefficient, but otherwise we're stuck doing this
+        step manually
         '''
-        # Because of the way SOMA works, if we try and just add a secondary
-        # interface it will remove the rest of that ethernet interface's
-        # configuration. To remedy this we first grab the existing
-        # configuration and append it to the request to add the
-        # secondary ip effectively rewriting it's entire configuration...
-        # Seems inefficient, but otherwise we're stuck doing this
-        # step manually
         self.domain = "default"
         self.request.clear()
         xpath = CONFIG_XPATH + 'EthernetInterface[@name="%s"]' % (
@@ -2275,6 +2185,14 @@ class DataPower(object):
     @correlate
     @logged
     def del_secondary_address(self, ethernet_interface, secondary_address):
+        """
+        Removes a secondary address from the specified ethernet
+        interface
+
+        * ethernet_interface - The name of the ethernet interface
+        (ie eth0)
+        * secondary_address - The secondary address to remove
+        """
         self.domain = "default"
         self.request.clear()
         xpath = CONFIG_XPATH + 'EthernetInterface[@name="%s"]' % (
@@ -2316,14 +2234,11 @@ class DataPower(object):
     @logged
     def add_static_host(self, hostname, ip):
         '''
-        ## DataPower.add_static_host:
         adds a static host DNS entry to the DataPower.
         Returns a BooleanResponse object
 
         * hostname: the hostname of the static host
         * ip: the IP address of the static host
-
-        TODO: Write tests for this function
         '''
         # Again we need to grab the existing config before we add the static
         # host.
@@ -2356,14 +2271,10 @@ class DataPower(object):
     @logged
     def del_static_host(self, hostname):
         '''
-        ## DataPower.del_static_host
-
         removes a static host DNS entry to the DataPower.
         Returns a BooleanResponse object
 
         * hostname: the hostname of the static host
-
-        TODO: Write tests for this function
         '''
         # Again we need to grab the existing config before we add the static
         # host.
@@ -2393,15 +2304,14 @@ class DataPower(object):
     @logged
     def add_host_alias(self, name, ip, admin_state='enabled'):
         '''
-        ## DataPower.add_host_alias
-
         adds a host alias to the DataPower.
+
         Returns a BooleanResponse object
 
-        * name: The name of the host alias
-        * ip: the IP address of the host alias
-
-        TODO: Write tests for this function
+        * name - The name of the host alias
+        * ip - the IP address of the host alias
+        * admin_state - either "enabled" or "disabled" the admin state
+        to apply to the host alias
         '''
         assert admin_state in ('enabled', 'disabled')
         self.domain = "default"
@@ -2418,13 +2328,11 @@ class DataPower(object):
     @logged
     def del_host_alias(self, name):
         '''
-        ## DataPower.del_host_alias
         removes a host alias to the DataPower.
+
         Returns a BooleanResponse object
 
         * name: The name of the host alias
-
-        TODO: Write tests for this function
         '''
         self.domain = "default"
         self.request.clear()
@@ -2440,12 +2348,8 @@ class DataPower(object):
                comment='', format='ZIP', persisted=True, all_files=True,
                referenced_files=True, referenced_objects=True):
         """
-        ## DataPower.export
-
         Exports an object/service from the appliance. Returns
         the base64 decoded string ready for writing to a file.
-
-        TODO: Write tests for this function
         """
         re1 = r'<\?xml.*?\n.*?file>'
         re2 = r'</dp:file.*Envelope>'
@@ -2478,10 +2382,8 @@ class DataPower(object):
     def get_normal_backup(self, domain='all-domains',
                           format='ZIP', comment=""):
         '''
-        ## DataPower.get_normal_backup
-
         This function builds the request for a Normal Backup, sends it out,
-        extracts the base64 encoded file, base64 decode the file and returns
+        extracts the base64 encoded file, base64 decodes the file and returns
         the result.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -2531,11 +2433,7 @@ class DataPower(object):
                               deployment_policy=None, import_domain=True,
                               reset_domain=True, dry_run=False):
         """
-        ## DataPower.restore_normal_backup
-
         Restores a normal backup to the appliance.
-
-        TODO: Write tests for this function
         """
 
         file_in = self._get_local_file(file_in)
@@ -2559,8 +2457,6 @@ class DataPower(object):
     @logged
     def get_existing_checkpoints(self, domain):
         '''
-        ## DataPower.get_existing_checkpoints:
-
         This function returns a dictionary
         describing the existing checkpoints in the
         given domain.
@@ -2568,8 +2464,6 @@ class DataPower(object):
         checkpoints = {'chkpoint1': {'date': ['2014', '01', '01']
                                      'time': ['23', '59', '59']}
                        ...}
-
-        TODO: Write tests for this function
         '''
         self.domain = domain
         self.log_info("Attempting to get existing checkpoints")
@@ -2591,11 +2485,7 @@ class DataPower(object):
     @logged
     def remove_oldest_checkpoint(self, domain):
         """
-        ## DataPower.remove_oldest_checkpoint
-
         This will remove the oldest checkpoint in domain.
-
-        TODO: Write tests for this function.
         """
         self.domain = domain
         checkpoints = self.get_existing_checkpoints(domain)
@@ -2619,13 +2509,9 @@ class DataPower(object):
     @logged
     def rollback_checkpoint(self, domain, checkpoint_name):
         """
-        ## DataPower.rollback_checkpoint
-
         Rolls given domain back to given checkpoint. To see which
         checkpoints are available please use
         DataPower.get_existing_checkpoints
-
-        TODO: Write tests for this function
         """
         self.domain = domain
         self.RollbackCheckpoint(domain=domain, ChkName=checkpoint_name)
@@ -2634,12 +2520,8 @@ class DataPower(object):
     @logged
     def max_checkpoints(self, domain):
         """
-        ## DataPower.max_checkpoints
-
         Returns an int representing the configured maximum number of
         checkpoints for a given domain.
-
-        TODO: Write tests for this function
         """
         xpath = CONFIG_XPATH + "Domain[@name='{}']/MaxChkpoints".format(domain)
         config = self.get_config("Domain", domain)
@@ -2649,11 +2531,7 @@ class DataPower(object):
     @logged
     def get_xml_managers(self, domain):
         """
-        ## DataPower.get_xml_managers
-
         Returns a list of XML Managers in domain.
-
-        TODO: Write tests for this function
         """
         xpath = CONFIG_XPATH + 'XMLManager'
         self.request.clear()
@@ -2665,11 +2543,7 @@ class DataPower(object):
     @logged
     def get_AAA_policies(self, domain):
         """
-        ## DataPower.get_AAA_policies
-
         Returns a list of AAA policies in domain.
-
-        TODO: Write tests for this function
         """
         xpath = CONFIG_XPATH + 'AAAPolicy'
         self.request.clear()
@@ -2681,11 +2555,7 @@ class DataPower(object):
     @logged
     def get_XACMLPDPs(self, domain):
         """
-        ## DataPower.get_XACMLPDPs
-
         Returns a list of XACMLPDPs in domain.
-
-        TODO: Write tests for this function
         """
         xpath = CONFIG_XPATH + 'XACMLPDP'
         self.request.clear()
@@ -2697,11 +2567,7 @@ class DataPower(object):
     @logged
     def get_ZosNSSClients(self, domain):
         """
-        ## DataPower.get_ZosNSSClients
-
         Returns a list of ZosNSSClients in domain.
-
-        TODO: Write tests for this function
         """
         xpath = CONFIG_XPATH + 'ZosNSSClient'
         self.request.clear()
@@ -2713,11 +2579,7 @@ class DataPower(object):
     @logged
     def get_secondary_addresses(self, interface):
         """
-        ## DataPower.get_secondary_addresses
-
         Returns a list of Secondary Addresses for interface.
-
-        TODO: Write tests for this function
         """
         xpath = "{}EthernetInterface[@name='{}']/SecondaryAddress".format(
             CONFIG_XPATH, interface)
@@ -2728,11 +2590,7 @@ class DataPower(object):
     @logged
     def get_static_hosts(self):
         """
-        ## DataPower.get_static_hosts
-
         Returns a list of Static Hosts.
-
-        TODO: Write tests for this function
         """
         config = self.get_config('DNSNameService', persisted=False)
         static_hosts = config.xml.findall(CONFIG_XPATH + '/StaticHosts')
@@ -2745,11 +2603,7 @@ class DataPower(object):
     @logged
     def get_static_routes(self, interface):
         """
-        ## DataPower.get_static_routes
-
         Returns a list of Static Routes for interface.
-
-        TODO: Write tests for this function
         """
         xpath = "{}EthernetInterface[@name='{}']/StaticRoutes".format(
             CONFIG_XPATH, interface)
@@ -2764,11 +2618,7 @@ class DataPower(object):
     @logged
     def get_host_aliases(self):
         """
-        ## DataPower.get_host_aliases
-
         Returns a list of Host Aliases for the appliances
-
-        TODO: Write tests for this function
         """
         xpath = "{}HostAlias".format(CONFIG_XPATH)
         config = self.get_config("HostAlias")
@@ -2781,8 +2631,6 @@ class DataPower(object):
     @logged
     def verify_local_backup(self, dir):
         """
-        ## DataPower.verify_local_backup
-
         Given dir, this method attempts to find a file called
         backupmanifest.xml, then parses that file and checks the
         checksum of each file in the backupmanifest.xml against
@@ -2790,8 +2638,6 @@ class DataPower(object):
 
         Returns True if all files match their Hash, and False if
         any file doesn't.
-
-        TODO: Write tests for this function
         """
         tree = etree.parse(os.path.join(dir, 'backupmanifest.xml'))
         file_node = tree.find('backupmanifest/files')
@@ -2818,15 +2664,11 @@ class DataPower(object):
     @logged
     def object_audit(self, domain='all-domains'):
         """
-        ## DataPower.object_audit
-
         This method will get the difference between the running and
         the persisted configuration. Returns a DPResponse object.
 
         TODO: Allow a blacklist param to skip domains when all-domains
         is specified.
-
-        TODO: Write tests for this function
         """
         if isinstance(domain, basestring):
             domain = [domain]
@@ -2854,8 +2696,6 @@ class DataPower(object):
     @logged
     def get_status(self, provider, domain="default"):
         """
-        ## DataPower.get_status
-
         Returns a StatusResponse object representing the status of the
         requested provider.
 
@@ -2877,8 +2717,6 @@ class DataPower(object):
     @logged
     def del_config(self, _class, name, domain="default"):
         """
-        ## DataPower.del_config
-
         Deletes an object from the appliance's configuration.
 
             >>> dp = DataPower("localhost", "user:pass")
@@ -2899,8 +2737,6 @@ class DataPower(object):
                    name=None, recursive=False,
                    persisted=True, domain='default'):
         """
-        ## DataPower.get_config
-
         Returns a ConfigResponse object representing the configuration of
         the requested object.
 
@@ -2924,11 +2760,7 @@ class DataPower(object):
     @logged
     def get_all_logs(self, dir="logtemp:", log_dir=None):
         """
-        ## DataPower.get_all_logs:
-
         Attempts to retrieve all log files from this appliance.
-
-        TODO: Write tests for this function
         """
         timestamp = Timestamp()
         self.log_info("Attempting to retrieve all current DataPower logs")
@@ -2965,8 +2797,6 @@ class DataPower(object):
     @logged
     def disable_domain(self, domain):
         """
-        ## DataPower.disable_domain
-
         Sets the admin state of the given domain to disabled
         """
         self.domain = domain
@@ -2980,8 +2810,6 @@ class DataPower(object):
     @logged
     def enable_domain(self, domain):
         """
-        ## DataPower.enable_domain
-
         Sets the admin state of the given domain to enabled.
         """
         self.domain = domain
@@ -2995,8 +2823,6 @@ class DataPower(object):
     @logged
     def add_domain(self, name):
         """
-        ## DataPower.add_domain
-
         Adds a domain to the appliance.
         """
         self.request.clear()
@@ -3008,8 +2834,6 @@ class DataPower(object):
     @logged
     def del_domain(self, name):
         """
-        ## DataPower.del_domain
-
         Removes domain with name of name from the appliance
         """
         self.request.clear()
@@ -3021,8 +2845,6 @@ class DataPower(object):
     @logged
     def set_firmware(self, image_file, AcceptLicense=False, timeout=1200):
         """
-        ## DataPower.set_firmware
-
         Uses AMP to set a firmware image file and attempt to
         reload the appliance to apply the up/down-graded firmware.
 
