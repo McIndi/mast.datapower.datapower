@@ -11,7 +11,7 @@ from functools import partial, wraps
 from mast.timestamp import Timestamp
 from mast.config import get_config
 from mast.hashes import get_sha1
-from mast.logging import make_logger
+from mast.logging import make_logger, logged
 from datetime import datetime
 from time import time, sleep
 import logging
@@ -71,43 +71,6 @@ except ImportError:
     paramiko_is_present = False
 
 
-def format_args(args):
-    """
-    __Internal Use__
-
-    This function formats arguments passed to functions for
-    debug logging purposes.
-    """
-    return ", ".join(("'" + str(arg) + "'" for arg in args))
-
-
-def format_kwargs(kwargs):
-    """
-    __Internal Use__
-
-    This function formats keyword-arguments passed to functions for
-    debug logging purposes.
-    """
-    return str(kwargs).replace("{", "").replace("}", "").replace(": ", "=")
-
-
-def format_arguments(args, kwargs):
-    """
-    __Internal Use__
-
-    This function formats arguments and keyword arguments
-    passed to functions for debug logging purposes.
-    """
-    arguments = ""
-    if args:
-        arguments += format_args(args)
-    if kwargs:
-        if args:
-            arguments += ", "
-        arguments += format_kwargs(kwargs)
-    return arguments
-
-
 def _escape(string):
     """
     __Internal Use__
@@ -120,50 +83,6 @@ def _escape(string):
         "\r", "").replace(
         "'", "&apos;").replace(
         '"', "&quot;")
-
-
-def logged(func):
-    """decorator which logs start and stop for a function along with
-    arguments and keyword arguments passed in."""
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        # Log a message saying we are executing func
-        arguments = format_arguments(args, kwargs)
-        msg = "Attempting to execute {}({})".format(func.__name__, arguments)
-        self.log_info(msg)
-
-        # Attempt to execute func
-        try:
-            result = func(self, *args, **kwargs)
-        except Exception, e:
-            # If anything goes wrong, log an error and re-raise the exception
-            self.log_error(
-                "An error occurred while attempting {}({}): {}".format(
-                    func.__name__, arguments, str(e)))
-            raise
-
-        if result is None:
-            # result needs to be a string
-            _result = "None"
-        else:
-            # remove newlines and escape double-quotes
-            _result = _escape(repr(result))
-
-        if len(repr(_result)) > 2048:
-            # This message is too long (usually this is a base64 encoded file)
-            # log the first 2KB and an elipses
-            _result = repr(_result[:2048]) + "..."
-
-        # log a message that we are finished with the function call
-        # and include the result
-        msg = "Finished execution of {}({}). Result: {}".format(
-            func.__name__,
-            arguments,
-            _result)
-        self.log_info(msg)
-
-        return result
-    return wrapper
 
 
 def correlate(func):
@@ -509,10 +428,6 @@ class DataPower(object):
 
     def get_logger(self):
         """
-        __TODO__: This will eventually be changed to use
-        mast.logging.make_logger in order to be incorperated
-        with the MAST logging system.
-
         Returns a logging.Logger instance associated with this appliance.
         The logger will be configured according to logging.conf in the section
         "appliance".
@@ -522,11 +437,10 @@ class DataPower(object):
             logger.info("Informational message")
             logger.debug("Debug message")
         """
-        logger = logging.getLogger("DataPower.{}".format(self.hostname))
-        return logger
+        return make_logger("DataPower.{}".format(self.hostname))
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_connect(self, domain='default', port=22, timeout=120):
         """
         This will attempt to connect to the DataPower appliance over SSH.
@@ -582,7 +496,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_is_connected(self):
         """
         Returns True if there is an active SSH connection to the appliance
@@ -603,7 +517,7 @@ class DataPower(object):
         return False
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_disconnect(self):
         """
         Disconnects the current SSH session as initiated through
@@ -626,7 +540,7 @@ class DataPower(object):
         return True
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_issue_command(self, command, timeout=120):
         """
         Issues a command through the SSH session as initiated through
@@ -684,7 +598,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_finished_command(self, resp):
         """
         Returns True if the appliance has finished executing the last command
@@ -729,7 +643,7 @@ class DataPower(object):
             return True
         return False
 
-    @logged
+    @logged("debug")
     def send_request(self, status=False, config=False, boolean=False):
         """
         This method attempts to send the objects current request
@@ -875,7 +789,7 @@ class DataPower(object):
             self.get_all_logs()
 
     @correlate
-    @logged
+    @logged("debug")
     def is_reachable(self):
         """
         Returns True if the appliance is reachable with the information
@@ -906,7 +820,7 @@ class DataPower(object):
             return False
 
     @correlate
-    @logged
+    @logged("debug")
     def check_xml_mgmt(self):
         """
         Returns True if we can connect to the xml mgmt interface with the
@@ -927,7 +841,7 @@ class DataPower(object):
             return False
 
     @correlate
-    @logged
+    @logged("debug")
     def check_web_mgmt(self):
         """
         Returns True if we are able to connect to the appliance's web gui.
@@ -953,7 +867,7 @@ class DataPower(object):
         return 'DataPower' in test.read()
 
     @correlate
-    @logged
+    @logged("debug")
     def check_cli_mgmt(self):
         """
         Returns True if we can connect to the appliance via SSH otherwise
@@ -967,7 +881,7 @@ class DataPower(object):
         except:
             return False
 
-    @logged
+    @logged("debug")
     def _add_dynamic_methods(self):
         """
         __Internal Use__
@@ -985,7 +899,7 @@ class DataPower(object):
                 setattr(self, node.tag, partial(self.do_action, node.tag))
 
     @correlate
-    @logged
+    @logged("debug")
     def do_action(self, action, **kwargs):
         """
         __Internal Use__
@@ -1082,7 +996,7 @@ class DataPower(object):
                 'environment': self.environment}
 
     @property
-    @logged
+    @logged("debug")
     def domains(self):
         """
         A (per-session) cached list of all domains on this DataPower.
@@ -1099,7 +1013,7 @@ class DataPower(object):
         return self._domains
 
     @property
-    @logged
+    @logged("debug")
     def users(self):
         """
         A current list of all users on this DataPower.
@@ -1116,7 +1030,7 @@ class DataPower(object):
         return users
 
     @property
-    @logged
+    @logged("debug")
     def groups(self):
         """
         A current list of user groups on the appliance
@@ -1134,7 +1048,7 @@ class DataPower(object):
         return groups
 
     @property
-    @logged
+    @logged("debug")
     def raid_directory(self):
         """
         The directory at which the raid volume is mounted.
@@ -1152,7 +1066,7 @@ class DataPower(object):
         return self._raid_directory
 
     @property
-    @logged
+    @logged("debug")
     def fallback_users(self):
         """
         A list of users configured as RBM fallback users.
@@ -1168,7 +1082,7 @@ class DataPower(object):
         return [fallback_user.text for fallback_user in fallback_users]
 
     @property
-    @logged
+    @logged("debug")
     def history(self):
         """
         Returns a string containing the complete history of request/response
@@ -1202,7 +1116,7 @@ class DataPower(object):
         return _hist
 
     @correlate
-    @logged
+    @logged("debug")
     def add_user(self, username, password, privileged=False, user_group=None):
         """
         Adds a user to this appliance with the specified username,
@@ -1252,7 +1166,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def change_password(self, username, password):
         """
         changes a user's password to password.
@@ -1277,7 +1191,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def remove_user(self, username):
         """
         Removes a local user from this appliance.
@@ -1295,7 +1209,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_del_rbm_fallback(self, usernames):
         """
         Removes a user from RBM fallback. This function uses
@@ -1320,7 +1234,7 @@ class DataPower(object):
         return session
 
     @correlate
-    @logged
+    @logged("debug")
     def ssh_add_rbm_fallback(self, usernames):
         """
         Adds a user to RBM fallback. This function uses
@@ -1345,7 +1259,7 @@ class DataPower(object):
         return session
 
     @correlate
-    @logged
+    @logged("debug")
     def del_rbm_fallback(self, username):
         '''
         Removes a fallback user from rbm configuration.
@@ -1390,7 +1304,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def add_rbm_fallback(self, user):
         '''
         adds a fallback user to specified rbm configuration.
@@ -1449,7 +1363,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def add_group(self, name,
                   access_policies=None,
                   admin_state="enabled",
@@ -1483,7 +1397,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_group(self, group):
         """
         Removes a group from the appliance.
@@ -1506,7 +1420,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def getfile(self, domain, filename):
         """
         Retrieves a file from this appliance. Returns the contents
@@ -1544,7 +1458,7 @@ class DataPower(object):
         return base64.decodestring(_file)
 
     @correlate
-    @logged
+    @logged("debug")
     def _set_file(self, contents, filename, domain, overwrite=True):
         """
         Uploads a file to DataPower.
@@ -1583,7 +1497,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def set_file(self, file_in, file_out, domain, overwrite=True):
         '''
         To upload a file to a specific domain and location on this
@@ -1636,7 +1550,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_file(self, domain, filename, backup=False, local_dir="tmp"):
         """
         Removes a file from the DataPower in the specified domain. If backup
@@ -1678,7 +1592,7 @@ class DataPower(object):
         resp = self.DeleteFile(domain=domain, File=filename)
         return resp
 
-    @logged
+    @logged("debug")
     def _get_local_file(self, file_in):
         """
         This function will get a file on the local computer,
@@ -1691,7 +1605,7 @@ class DataPower(object):
         return fin
 
     @correlate
-    @logged
+    @logged("debug")
     def get_filestore(self, domain, location='local:'):
         '''
         This method returns a DPResponse object which contains the
@@ -1713,7 +1627,7 @@ class DataPower(object):
         return filestore
 
     @correlate
-    @logged
+    @logged("debug")
     def get_temporary_filesystem(self):
         """
         Returns an XML document as a DPResponse object which is a
@@ -1736,7 +1650,7 @@ class DataPower(object):
         return DPResponse(etree.tostring(doc))
 
     @correlate
-    @logged
+    @logged("debug")
     def get_encrypted_filesystem(self):
         """
         Returns an XML document as a DPResponse object which is a
@@ -1763,7 +1677,7 @@ class DataPower(object):
         return DPResponse(etree.tostring(doc))
 
     @correlate
-    @logged
+    @logged("debug")
     def directory_exists(self, directory, domain):
         """
         Returns True if dir is a directory in domain, False otherwise.
@@ -1789,7 +1703,7 @@ class DataPower(object):
         return filestore.xml.find(xpath) is not None
 
     @correlate
-    @logged
+    @logged("debug")
     def location_exists(self, location, domain):
         """
         Return True if location is a location False otherwise.
@@ -1813,7 +1727,7 @@ class DataPower(object):
             return False
 
     @correlate
-    @logged
+    @logged("debug")
     def file_exists(self, filename, domain):
         """
         Return True if filename exists in domain, otherwise return False
@@ -1847,7 +1761,7 @@ class DataPower(object):
         return filestore.xml.find(xpath) is not None
 
     @correlate
-    @logged
+    @logged("debug")
     def copy_directory(self, dp_path,
                        local_path, domain='default',
                        recursive=True, filestore=None):
@@ -1940,7 +1854,7 @@ class DataPower(object):
                 fout.write(self.getfile(domain=domain, filename=fname))
 
     @correlate
-    @logged
+    @logged("debug")
     def ls(self, dir, domain='default', include_directories=True,
            filestore=None):
         """
@@ -1994,7 +1908,7 @@ class DataPower(object):
         return files
 
     @correlate
-    @logged
+    @logged("debug")
     def do_import(self, domain,
                   zip_file, deployment_policy=None,
                   dry_run=False, overwrite_files=True,
@@ -2028,7 +1942,7 @@ class DataPower(object):
         return self.send_request()
 
     @correlate
-    @logged
+    @logged("debug")
     def add_static_route(self, ethernet_interface,
                          destination, gateway, metric):
         '''
@@ -2079,7 +1993,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_static_route(self, ethernet_interface, destination):
         '''
         adds a static route to the specified ethernet_interface.
@@ -2122,7 +2036,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def add_secondary_address(self, ethernet_interface, secondary_address):
         '''
         Adds a secondary ip address to specified ethernet interface.
@@ -2183,7 +2097,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_secondary_address(self, ethernet_interface, secondary_address):
         """
         Removes a secondary address from the specified ethernet
@@ -2231,7 +2145,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def add_static_host(self, hostname, ip):
         '''
         adds a static host DNS entry to the DataPower.
@@ -2268,7 +2182,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_static_host(self, hostname):
         '''
         removes a static host DNS entry to the DataPower.
@@ -2301,7 +2215,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def add_host_alias(self, name, ip, admin_state='enabled'):
         '''
         adds a host alias to the DataPower.
@@ -2325,7 +2239,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_host_alias(self, name):
         '''
         removes a host alias to the DataPower.
@@ -2343,7 +2257,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def export(self, domain, obj, object_class,
                comment='', format='ZIP', persisted=True, all_files=True,
                referenced_files=True, referenced_objects=True):
@@ -2378,7 +2292,7 @@ class DataPower(object):
         return base64.decodestring(response)
 
     @correlate
-    @logged
+    @logged("debug")
     def get_normal_backup(self, domain='all-domains',
                           format='ZIP', comment=""):
         '''
@@ -2426,7 +2340,7 @@ class DataPower(object):
         return base64.decodestring(_file)
 
     @correlate
-    @logged
+    @logged("debug")
     def restore_normal_backup(self, file_in, domain,
                               source_type="ZIP", overwrite_files=True,
                               overwrite_objects=True, rewrite_local_ip=True,
@@ -2454,7 +2368,7 @@ class DataPower(object):
         return self.send_request()
 
     @correlate
-    @logged
+    @logged("debug")
     def get_existing_checkpoints(self, domain):
         '''
         This function returns a dictionary
@@ -2482,7 +2396,7 @@ class DataPower(object):
         return rtn_dict
 
     @correlate
-    @logged
+    @logged("debug")
     def remove_oldest_checkpoint(self, domain):
         """
         This will remove the oldest checkpoint in domain.
@@ -2506,7 +2420,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def rollback_checkpoint(self, domain, checkpoint_name):
         """
         Rolls given domain back to given checkpoint. To see which
@@ -2517,7 +2431,7 @@ class DataPower(object):
         self.RollbackCheckpoint(domain=domain, ChkName=checkpoint_name)
 
     @correlate
-    @logged
+    @logged("debug")
     def max_checkpoints(self, domain):
         """
         Returns an int representing the configured maximum number of
@@ -2528,7 +2442,7 @@ class DataPower(object):
         return int(config.xml.find(xpath).text)
 
     @correlate
-    @logged
+    @logged("debug")
     def get_xml_managers(self, domain):
         """
         Returns a list of XML Managers in domain.
@@ -2540,7 +2454,7 @@ class DataPower(object):
         return mgrs
 
     @correlate
-    @logged
+    @logged("debug")
     def get_AAA_policies(self, domain):
         """
         Returns a list of AAA policies in domain.
@@ -2552,7 +2466,7 @@ class DataPower(object):
         return policies
 
     @correlate
-    @logged
+    @logged("debug")
     def get_XACMLPDPs(self, domain):
         """
         Returns a list of XACMLPDPs in domain.
@@ -2564,7 +2478,7 @@ class DataPower(object):
         return xacmlpdps
 
     @correlate
-    @logged
+    @logged("debug")
     def get_ZosNSSClients(self, domain):
         """
         Returns a list of ZosNSSClients in domain.
@@ -2576,7 +2490,7 @@ class DataPower(object):
         return ZosNSSClients
 
     @correlate
-    @logged
+    @logged("debug")
     def get_secondary_addresses(self, interface):
         """
         Returns a list of Secondary Addresses for interface.
@@ -2587,7 +2501,7 @@ class DataPower(object):
         return [x.text for x in int_config.xml.findall(xpath)]
 
     @correlate
-    @logged
+    @logged("debug")
     def get_static_hosts(self):
         """
         Returns a list of Static Hosts.
@@ -2600,7 +2514,7 @@ class DataPower(object):
             for x in static_hosts]
 
     @correlate
-    @logged
+    @logged("debug")
     def get_static_routes(self, interface):
         """
         Returns a list of Static Routes for interface.
@@ -2615,7 +2529,7 @@ class DataPower(object):
             for x in config.xml.findall(xpath)]
 
     @correlate
-    @logged
+    @logged("debug")
     def get_host_aliases(self):
         """
         Returns a list of Host Aliases for the appliances
@@ -2628,7 +2542,7 @@ class DataPower(object):
             x.find("mAdminState").text)
             for x in config.xml.findall(xpath)]
 
-    @logged
+    @logged("debug")
     def verify_local_backup(self, dir):
         """
         Given dir, this method attempts to find a file called
@@ -2661,7 +2575,7 @@ class DataPower(object):
         return True
 
     @correlate
-    @logged
+    @logged("debug")
     def object_audit(self, domain='all-domains'):
         """
         This method will get the difference between the running and
@@ -2693,7 +2607,7 @@ class DataPower(object):
         return etree.tostring(resp)
 
     @correlate
-    @logged
+    @logged("debug")
     def get_status(self, provider, domain="default"):
         """
         Returns a StatusResponse object representing the status of the
@@ -2714,7 +2628,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_config(self, _class, name, domain="default"):
         """
         Deletes an object from the appliance's configuration.
@@ -2732,7 +2646,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def get_config(self, _class=None,
                    name=None, recursive=False,
                    persisted=True, domain='default'):
@@ -2757,7 +2671,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def get_all_logs(self, dir="logtemp:", log_dir=None):
         """
         Attempts to retrieve all log files from this appliance.
@@ -2794,7 +2708,7 @@ class DataPower(object):
 
     # PICK UP WRITING TESTS HERE
     @correlate
-    @logged
+    @logged("debug")
     def disable_domain(self, domain):
         """
         Sets the admin state of the given domain to disabled
@@ -2807,7 +2721,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def enable_domain(self, domain):
         """
         Sets the admin state of the given domain to enabled.
@@ -2820,7 +2734,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def add_domain(self, name):
         """
         Adds a domain to the appliance.
@@ -2831,7 +2745,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def del_domain(self, name):
         """
         Removes domain with name of name from the appliance
@@ -2842,7 +2756,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged
+    @logged("debug")
     def set_firmware(self, image_file, AcceptLicense=False, timeout=1200):
         """
         Uses AMP to set a firmware image file and attempt to
