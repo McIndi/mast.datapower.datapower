@@ -1,4 +1,6 @@
 """
+_module_: `mast.datapower.datapower.DataPower`
+
 A library which provides various utilities for interacting with IBM
 DataPower appliances. The most important of which is the DataPower
 class which provides many convenient wrappers around the SOMA XML
@@ -23,6 +25,8 @@ import re
 
 class AuthenticationFailure(Exception):
     """
+    _class_: `mast.datapower.datapower.AuthenticationFailure(Exception)`
+
     Raised when the appliance responds with a 200 status code,
     but includes `Authentication Failure` in the response body
     """
@@ -31,6 +35,8 @@ class AuthenticationFailure(Exception):
 
 class FailedToRetrieveBackup(Exception):
     """
+    _class_: `mast.datapower.datapower.FailedToRetrieveBackup(Exception)`
+
     Raised when the appliance sends back a response containing an
     empty file node when asked for a normal backup. This usually
     means an intermediate failure or too little space in
@@ -42,6 +48,8 @@ class FailedToRetrieveBackup(Exception):
 
 class SSHTimeoutError(Exception):
     """
+    _class_: `mast.datapower.datapower.SSHTimeoutError(Exception)`
+
     Raised when the appliance takes longer to respond to a cli
     command than the specified timeout.
     """
@@ -53,6 +61,8 @@ try:
 
     def fixed_AES_new(key, *ls):
         """
+        _function_: `mast.datapower.datapower.fixed_AES_new(key, *ls)`
+
         __Internal Use__
 
         This is a workaround to
@@ -73,6 +83,8 @@ except ImportError:
 
 def _escape(string):
     """
+    _function_: `mast.datapower.datapower._escape(string)`
+
     __Internal Use__
 
     This function removes newlines and escapes single and double
@@ -87,6 +99,8 @@ def _escape(string):
 
 def correlate(func):
     """
+    _function_:_decorator_: `mast.datapower.datapower.correlate(func)`
+
     Decorator which changes self.correlation_id before executing
     a function and changes it back to it's previous value after
     execution
@@ -119,11 +133,16 @@ FILESTORE_XPATH += '{http://www.datapower.com/schemas/management}filestore/'
 
 def pretty_print(elem, level=0):
     """
+    _function_: `mast.datapower.datapower.pretty_print(elem, level=0)`
+
     Given an xml.etree.ElementTree.Element, insert whitespace
     so that when xml.etree.ElementTree.tostring is called on
     it, it will be pretty-printed.
 
-    Usage: pretty_print(elem, level=0)
+    Usage:
+
+        :::python
+        pretty_print(elem)
 
     * elem - Should be an instance of xml.etree.ElementTree.Element
     * level - Used by function itself for recursive calls should not
@@ -145,11 +164,20 @@ def pretty_print(elem, level=0):
 
 
 class DPResponse(object):
+    """
+    _class_: `mast.datapower.datapower.DPResponse(object)`
+
+    This is a generic class used to wrap an XML response received
+    from a DataPower appliance from the SOMA XML management interface.
+    """
+
     def __init__(self, response):
         """
+        _method_: `mast.datapower.DPResponse(object)`
+
         This is a generic response object it is used like this:
 
-            #!python
+            :::python
             dp = DataPower('hostname', 'user:password')
             resp = dp.get_config('EthernetInterface')
             # resp is now an instance of DPResponse
@@ -165,6 +193,8 @@ class DPResponse(object):
     @property
     def xml(self):
         """
+        _property_: `mast.datapower.datapower.DPResponse.xml`
+
         Returns an xml.etree.cElementTree object created by parsing
         the response. This is cached after the first call.
         """
@@ -184,6 +214,8 @@ class DPResponse(object):
     @property
     def pretty(self):
         """
+        _property_: `mast.datapower.datapower.pretty`
+
         Returns a pretty-printed string of the response XML.
         This is cached after the first call.
         """
@@ -194,6 +226,8 @@ class DPResponse(object):
 
     def __str__(self):
         """
+        _method_: `mast.datapower.datapower.DPResponse.__str__`
+
         Same as DPResponse.pretty
 
         Returns a pretty-printed string of the response XML.
@@ -203,6 +237,8 @@ class DPResponse(object):
 
     def __repr__(self):
         """
+        _method_: `mast.datapower.datapower.DPResponse.__repr__`
+
         Same as DPResponse.text
 
         Returns a string containing the response with newlines removed
@@ -213,10 +249,13 @@ class DPResponse(object):
 
 class BooleanResponse(DPResponse):
     """
+    _class_: `mast.datapower.datapower.BooleanResponse(DPResponse)`
+
     This is a DPResponse object with one additional property
     it will attempt to convey the success of the action through
-    the __bool__ magic method, so a test like:
+    the __nonzero__ magic method, so a test like:
 
+        :::python
         if resp:
             success
         else:
@@ -230,6 +269,11 @@ class BooleanResponse(DPResponse):
     by copious amounts of whitespace.
     """
     def __nonzero__(self):
+        """
+        _method_: `mast.datapower.datapower.BooleanResponse.__nonzero__(self)`
+
+        Returns True if "OK" is located in the response False otherwise.
+        """
         if 'OK' in self.text:
             return True
         return False
@@ -237,6 +281,8 @@ class BooleanResponse(DPResponse):
 
 class AMPBooleanResponse(DPResponse):
     """
+    _class_: `mast.datapower.datapower.AMPBooleanResponse(DPResponse)`
+
     Returned when an AMP request is issued, this is currently
     only used on DataPower.firmware_upgrade()
 
@@ -244,6 +290,7 @@ class AMPBooleanResponse(DPResponse):
     it will attempt to convey the success of the action through
     the __bool__ magic method, so a test like:
 
+        :::python
         if resp:
             success
         else:
@@ -264,6 +311,8 @@ class AMPBooleanResponse(DPResponse):
 
 class StatusResponse(DPResponse):
     """
+    _class_: `mast.datapower.datapower.StatusResponse(DPResponse)`
+
     __WARNING__: This implementation is currently broken, but will
     be fixed soon.
 
@@ -288,6 +337,8 @@ class StatusResponse(DPResponse):
 
 class ConfigResponse(DPResponse):
     """
+    _class_: `mast.datapower.datapower.ConfigResponse(DPResponse)`
+
     __WARNING__: This implementation is currently broken, but will
     be fixed soon.
 
@@ -315,6 +366,8 @@ logger.addHandler(logging.NullHandler())
 
 class DataPower(object):
     """
+    _class_: `mast.datapower.datapower.DataPower(object)`
+
     This class represents an IBM DataPower appliance. It contains
     numerous convenience methods which are available for use in
     your scripts.
@@ -323,6 +376,7 @@ class DataPower(object):
     any information to be sent to or from the appliance being
     represented.
 
+        :::python
         dp = DataPower("localhost", "user:pass")
         print dp.hostname
         print dp.domains
@@ -333,28 +387,33 @@ class DataPower(object):
                  test_case='etc/v7000-xi52.xml', web_port='9090',
                  ssh_port=22, environment=None, check_hostname=True):
         """
+        _method_: `mast.datapower.datapower.DataPower.__init__(self, hostname, credentials, domain='default', scheme='https', port='5550', uri='/service/mgmt/current', test_case='etc/v7000-xi52.xml', web_port='9090', ssh_port=22, environment=None, check_hostname=True)`
+
         This method instanciates an instance of a DataPower object.
         It accepts the following parameters:
 
-        * hostname - Can be a hostname, IP Address, or an alias configured in
+        * `hostname`: Can be a hostname, IP Address, or an alias configured in
         $MAST_HOME/etc/local/hosts.conf
-        * credentials - should be a string that is a username and password
+        * `credentials`: should be a string that is a username and password
         seperated by a colon (ie. "user:pass")
-        * domain - The initial domain to start in.
-        * scheme - either "http" or "https" defaults to "https"
-        * port - The port for the xml management interface defaults
+        * `domain`: The initial domain to start in.
+        * `scheme`: either "http" or "https" defaults to "https"
+        * `port`: The port for the xml management interface defaults
         to 5550 (should be a string not an int)
-        * uri - The URI of the SOMA XML Management Interface defaults
+        * `uri`: The URI of the SOMA XML Management Interface defaults
         to "/service/mgmt/current"
-        * test_case - The XML Test Case file (These are provided by McIndi)
+        * `test_case`: The XML Test Case file (These are provided by McIndi)
         they are based on your model and firmware see the documentation as
         to which one to use
-        * web_port - the port of the Web Management Interface defaults to
+        * `web_port`: the port of the Web Management Interface defaults to
         "9090"
-        * ssh_port - the port (as an int) of the CLI Management Interface (SSH)
-        * environment - The environment you want this instance to be associated
+        * `ssh_port`: the port (as an int) of the CLI Management Interface (SSH)
+        * `environment`: The environment you want this instance to be associated
         with in the logs.
+        * `check_hostname`: If `False` hostname verification will be disabled
+        for TLS. Defaults to `True`
 
+            :::python
             dp = DataPower("localhost", "user:pass")
         """
         hosts_config = get_config("hosts.conf")
@@ -421,17 +480,32 @@ class DataPower(object):
         self.list_dir = self.get_filestore
 
     def __str__(self):
+        """
+        _method_: `mast.datapower.datapower.DataPower.__str__(self)`
+
+        Returns the `str`ing representation of the appliance, which is
+        the hostname surrounded by single quotes (')
+        """
         return "'{}'".format(self.hostname)
 
     def __repr__(self):
+        """
+        _method_: `mast.datapower.datapower.DataPower.__repr__(self)`
+
+        Returns the `str`ing representation of the appliance, which is
+        the hostname surrounded by single quotes (')
+        """
         return "'{}'".format(self.hostname)
 
     def get_logger(self):
         """
+        _method_: `mast.datapower.datapower.get_logger(self)`
+
         Returns a logging.Logger instance associated with this appliance.
         The logger will be configured according to logging.conf in the section
         "appliance".
 
+            :::python
             dp = DataPower("localhost", "user:pass")
             logger = dp.get_logger()
             logger.info("Informational message")
@@ -443,10 +517,21 @@ class DataPower(object):
     @logged("debug")
     def ssh_connect(self, domain='default', port=22, timeout=120):
         """
+        _method_: `mast.datapower.datapower.DataPower.ssh_connect(self, domain='default', port=22, timeout=120)`
+
         This will attempt to connect to the DataPower appliance over SSH.
         Once connected you can issue commands with DataPower.ssh_issue_command.
 
-        Don't forget to disconnect by calling DataPower.ssh_disconnect.
+        Don't forget to disconnect by calling `DataPower.ssh_disconnect`.
+
+        Parameters:
+
+        * `domain`: The domain to log in to, defaults to `default`
+        * `port`: The ssh port to connect to. Expects an `int`, defaults
+        to 22
+        * `timeout`: The amount of time (in seconds) to wait for the
+        connection to become active. If the timeout is exceeded, a
+        `SSHTimeoutError` is raised
         """
         try:
             self.log_info("Attempting SSH connection")
@@ -499,8 +584,10 @@ class DataPower(object):
     @logged("debug")
     def ssh_is_connected(self):
         """
+        _method_: `mast.datapower.datapower.DataPower.ssh_is_connected(self)`
+
         Returns True if there is an active SSH connection to the appliance
-        initiated through DataPower.ssh_connect.
+        initiated through `DataPower.ssh_connect()`.
         """
         if not hasattr(self, '_ssh'):
             self.log_warn(
@@ -520,6 +607,8 @@ class DataPower(object):
     @logged("debug")
     def ssh_disconnect(self):
         """
+        _method_: `mast.datapower.datapower.DataPower.ssh_disconnect(self)`
+
         Disconnects the current SSH session as initiated through
         DataPower.ssh_connect.
         """
@@ -543,8 +632,13 @@ class DataPower(object):
     @logged("debug")
     def ssh_issue_command(self, command, timeout=120):
         """
+        _method_: `mast.datapower.datapower.DataPower(self, command, timeout=120)`
+
         Issues a command through the SSH session as initiated through
         DataPower.ssh_connect.
+
+        Parameters:
+
         """
         username, password = self.credentials.split(":")
         if not self.ssh_is_connected():
