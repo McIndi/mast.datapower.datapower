@@ -1768,12 +1768,16 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def getfile(self, domain, filename):
         """
-        Retrieves a file from this appliance. Returns the contents
-        base64 decoded and ready for writing to a file.
+        _method_: `mast.datapower.datapower.DataPower.getfile(self, domain, filename)`        
+        
+        Retrieves a file from this appliance.
 
+        Usage:
+
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> # Our stub server will return "Test Succeeded" base64 encoded
             >>> print dp.getfile("default", "config:/autoconfig.cfg")
@@ -1784,6 +1788,13 @@ class DataPower(object):
             >>> # with no considerations
             >>> print dp.getfile("default", "config:/empty.txt")
             <BLANKLINE>
+        
+        Returns: the contents base64 decoded and ready for writing to a file.
+
+        Parameters:
+        
+        * `domain`: The domain from which to retrieve the file
+        * `filename`: The path and filename of the file to retrieve
         """
         self.domain = domain
         self.request.clear()
@@ -1806,19 +1817,16 @@ class DataPower(object):
         return base64.decodestring(_file)
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def _set_file(self, contents, filename, domain, overwrite=True):
         """
+        _method_: `mast.datapower.datapower.DataPower._set_file(self, contents, filename, domain, overwrite=True)`
+
         Uploads a file to DataPower.
 
-        Parameters:
-
-        * contents - the base64 encoded file contents to upload
-        * filename - the path and filename of the file as you want it to
-        appear on the appliance
-        * domain - The domain to which to upload the file
-        * overwrite - Whether to overwrite the file if it exists
-
+        Usage:
+            
+            :::python
             >>> import base64
             >>> dp = DataPower("localhost", "user:pass")
             >>> contents = base64.encodestring("Test Succeeded")
@@ -1827,6 +1835,14 @@ class DataPower(object):
             <class 'mast.datapower.datapower.BooleanResponse'>
             >>> print dp.getfile("default", "local:/test.txt")
             Test Succeeded
+
+        Parameters:
+
+        * contents - the base64 encoded file contents to upload
+        * filename - the path and filename of the file as you want it to
+        appear on the appliance
+        * domain - The domain to which to upload the file
+        * overwrite - Whether to overwrite the file if it exists
         """
         if not overwrite:
             if self.file_exists(filename, domain):
@@ -1845,19 +1861,17 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def set_file(self, file_in, file_out, domain, overwrite=True):
         '''
+        _method_: `mast.datapower.datapower.DataPower.set_file(self, file_in, file_out, domain, overwrite=True)`
+
         To upload a file to a specific domain and location on this
         DataPower.
 
-        * file_in: Should be a string containing the path and
-        filename of the file to upload
-        * file_out: If a location or directory is provided filename will be
-        as it appears on the local machine, if a path and filename is provided
-        filename will be as provided
-        * domain: The domain to which to upload the file
+        Usage
 
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.set_file(
             ...     file_in="README.md",
@@ -1877,6 +1891,16 @@ class DataPower(object):
             False
             >>> print len(dp._history)
             4
+
+        Parameters:
+        
+        * file_in: Should be a string containing the path and
+        filename of the file to upload
+        * file_out: If a location or directory is provided filename will be
+        as it appears on the local machine, if a path and filename is provided
+        filename will be as provided
+        * domain: The domain to which to upload the file
+
         '''
         if not overwrite:
             if self.file_exists(file_out, domain):
@@ -1898,12 +1922,17 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def del_file(self, domain, filename, backup=False, local_dir="tmp"):
         """
+        _method_: `mast.datapower.datapower.DataPower.del_file(self, domain, filename, backup=False, local_dir="tmp")`
+
         Removes a file from the DataPower in the specified domain. If backup
         is True it will copy the file into local_dir.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.del_file(
             ...     domain="default",
@@ -1921,16 +1950,17 @@ class DataPower(object):
                 </dp:response>
               </env:Body>
             </env:Envelope>
-            <BLANKLINE>
-            >>> print len(dp._history)
-            1
-            >>> resp = dp.del_file(
-            ...     domain="default",
-            ...     filename="local:/foo/foo.xml",
-            ...     backup=True,
-            ...     local_dir="tmp")
-            >>> print len(dp._history)
-            3
+
+        Returns: A `BooleanResponse` object containing the appliance's
+        XML response
+        
+        Parameters:
+        
+        * `domain`: The domain from which to delete the file
+        * `filename`: The path and filename of the file to delete
+        * `backup`: If `True`, the file will be backed up locally before
+        removing from the appliance
+        * `local_dir`: The local directory to save the backed up file to
         """
         if backup:
             contents = self.getfile(domain, filename)
@@ -1943,9 +1973,25 @@ class DataPower(object):
     @logged("debug")
     def _get_local_file(self, file_in):
         """
+        _method_: `mast.datapower.datapower.DataPower._get_local_file(self, file_in)`
+
         This function will get a file on the local computer,
         base64 encode it so it is ready to be put into a set_file
         call.
+
+        Usage:
+            
+            :::python
+            >>> dp = DataPower("localhost", "user:pass")
+            >>> dp._get_local_file("README.md")
+            <base64 encoded contents of the file>
+        
+        Returns: The base64 encoded string representing the file contents
+        
+        Parameters:
+        
+        * `file_in`: The path and filename of  the file to base64 encode
+        and return
         """
         with open(file_in, 'rb') as f:
             fin = base64.encodestring(f.read())
@@ -1956,17 +2002,27 @@ class DataPower(object):
     @logged("debug")
     def get_filestore(self, domain, location='local:'):
         '''
-        This method returns a DPResponse object which contains the
-        xml representing the filestore.
+        _method_: `mast.datapower.datapower.DataPower.get_filestore(self, domain, location='local:')`
 
+        Retrieve the filestore listing of location from appliance in domain.
+
+        Returns: A `DPResponse` object containing the XML response of
+        the appliance
+        
+        Usage:
+            
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_filestore(
             ...     domain="default",
             ...     location="local:")
             >>> print type(resp)
             <class 'mast.datapower.datapower.DPResponse'>
-            >>> print len(dp._history)
-            1
+
+        Parameters:
+        
+        * `domain`: The domain from which to retrieve the filestore
+        * `location`: The location for which to retrieve the filestore
         '''
         self.domain = domain
         self.request.clear()
@@ -1978,15 +2034,24 @@ class DataPower(object):
     @logged("debug")
     def get_temporary_filesystem(self):
         """
-        Returns an XML document as a DPResponse object which is a
-        directory listing for the entire temporary filesystem.
+        _method_: `mast.datapower.datapower.DataPower.get_temporary_filesystem(self)`
 
+        Get a directory listing for the entire temporary filesystem.
+
+        Returns: A `DPResponse` object which contains the XML response from
+        the appliance
+        
+        Usage:        
+
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_temporary_filesystem()
             >>> print type(resp)
             <class 'mast.datapower.datapower.DPResponse'>
-            >>> print len(dp._history)
-            3
+
+        Parameters:
+        
+        This method accepts no arguments
         """
         locations = ["temporary:", "logtemp:", "image:"]
         doc = etree.Element("filesystem")
@@ -2001,15 +2066,24 @@ class DataPower(object):
     @logged("debug")
     def get_encrypted_filesystem(self):
         """
-        Returns an XML document as a DPResponse object which is a
-        directory listing for the entire encrypted filesystem.
+        _method_: `mast.datapower.datapower.DataPower.get_encrypted_filesystem(self)`
 
+        Get a directory listing of  the entire encrypted filesystem.
+
+        Returns: A `DPResponse` object which contains the XML response
+        from the appliance
+        
+        Usage:
+
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_encrypted_filesystem()
             >>> print type(resp)
             <class 'mast.datapower.datapower.DPResponse'>
-            >>> print len(dp._history)
-            9
+
+        Parameters:
+        
+        This method accepts no arguments
         """
         locations = ["local:", "store:",
                      "logstore:", "cert:",
@@ -2028,8 +2102,16 @@ class DataPower(object):
     @logged("debug")
     def directory_exists(self, directory, domain):
         """
-        Returns True if dir is a directory in domain, False otherwise.
+        _method_: `mast.datapower.datapower.DataPower.directory_exists(self, directory, domain)`
 
+        Determine whether directory exists in `domain` on the appliance.
+
+        Returns: `True` if `directory` is a directory in domain,
+        `False` otherwise.
+        
+        Usage:
+
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.directory_exists(
             ...     directory="local:/foo",
@@ -2039,8 +2121,12 @@ class DataPower(object):
             ...     directory="local:/foobar",
             ...     domain="default")
             False
-            >>> print len(dp._history)
-            2
+
+        Parameters:
+        
+        * `directory`: The name of the directory which you would like to
+        verifiy the existance of
+        * `domain`: The name of the domain in which to look for `directory`
         """
         self.domain = domain
         location = directory.split(':')[0] + ':'
@@ -2054,13 +2140,29 @@ class DataPower(object):
     @logged("debug")
     def location_exists(self, location, domain):
         """
-        Return True if location is a location False otherwise.
+        _method_: `mast.datapower.datapower.DataPower.location_exists(self, location, domain)`
 
+        Determine if `location` is a location in the specified domain on
+        the appliance.
+
+        Returns: `True` if `location` is a location in the specified
+        domain `False` otherwise.
+
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.location_exists("local:", "default")
             True
             >>> print dp.location_exists("foo:", "default")
             False
+        
+        Parameters:
+        
+        * `location`: The name of the location you would like to
+        verify exists
+        * `domain`: The name of the domain in which to look for
+        `location`
         """
         self.domain = domain
         location = location.rstrip("/")
@@ -2078,8 +2180,17 @@ class DataPower(object):
     @logged("debug")
     def file_exists(self, filename, domain):
         """
-        Return True if filename exists in domain, otherwise return False
+        _method_: `mast.datapower.datapower.DataPower.file_exists(self, filename, domain)`
+        
+        Determine whether file exists in the specified domain on the
+        appliance        
+        
+        Returns: `True` if `filename` exists in domain, otherwise
+        `False`
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.file_exists("local:/foo/foo.xml", "default")
             True
@@ -2089,6 +2200,12 @@ class DataPower(object):
             True
             >>> print dp.file_exists("local:/foobar/foo.xml", "default")
             False
+        
+        Parameters:
+        
+        * `filename`: The path and filename of the file who's existance
+        you would like to verify
+        * `domain`: The name of the domain in which to look for `filename`
         """
         self.domain = domain
         location = '{}:'.format(filename.split(':')[0])
@@ -2114,41 +2231,29 @@ class DataPower(object):
                        local_path, domain='default',
                        recursive=True, filestore=None):
         """
+        _method_: `mast.datapower.datapower.DataPower.copy_directory(self, dp_path, local_path, domain='default', recursive=True, filestore=None)`
+
         This will copy the contents of dp_path to local_path.
 
-            >>> import os
-            >>> import shutil
-            >>> if os.path.exists("tmp/local"):
-            ...     shutil.rmtree("tmp/local")
+        Returns: None
+
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
-            >>> dp.copy_directory("local:", "tmp", "default", True)
-            >>> print os.path.isdir("tmp/local")
-            True
-            >>> print os.path.isdir("tmp/local/foo")
-            True
-            >>> print os.path.isdir("tmp/local/bar")
-            True
-            >>> print os.path.isdir("tmp/local/baz")
-            True
-            >>> for _dir in ["tmp/local/foo", "tmp/local/bar", \
-            "tmp/local/baz"]:
-            ...     print os.path.isfile(os.path.join(_dir, "foo.xml"))
-            ...     print os.path.isfile(os.path.join(_dir, "bar.xml"))
-            ...     print os.path.isfile(os.path.join(_dir, "baz.xml"))
-            ...     print os.path.isdir(os.path.join(
-            ...         _dir, "level1", "level2", "level3", "level4"))
-            True
-            True
-            True
-            True
-            True
-            True
-            True
-            True
-            True
-            True
-            True
-            True
+            >>> dp.copy_directory("local:", "/tmp", "default", True)
+
+        Parameters:
+        
+        * `dp_path`: The directory/location on the appliance, you would
+        like to copy locally
+        * `local_path`: The base directory to copy the files to
+        * `domain`: The domain from which to copy the files
+        * `recursive`: Whether or not to recurse into sub-directories
+        * `filestore`: The filestore of the location in which `dp_path`
+        resides. If this is not passed in, the filestore will be
+        retrieved from the appliance. This is to help when acting
+        recursively so the filestore is retrieved only once
         """
         dp_path = dp_path.replace("///", "/")
         if dp_path.endswith("/"):
@@ -2206,10 +2311,17 @@ class DataPower(object):
     def ls(self, dir, domain='default', include_directories=True,
            filestore=None):
         """
-        This will return a directory listing in the form of a python list.
-        Files will have just the filename, but directories will have the
-        location and the path in the standard notation.
+        _method_: `mast.datapower.datapower.DataPower.ls(self, dir, domain='default', include_directories=True, filestore=None)`
 
+        Retrieve a directory listing of `dir` in `domain` on the appliance.
+        
+        Returns: A python `list` files will have just the filename, but
+        directories will have the location and the path in the
+        standard notation.
+
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.ls("local:/foo", "default", True)
             ['foo.xml', 'bar.xml', 'baz.xml', 'local:/foo/level1/']
@@ -2217,6 +2329,17 @@ class DataPower(object):
             ['local:/foo/', 'local:/bar/', 'local:/baz/']
             >>> print dp.ls("local:", "default", False)
             []
+        
+        Parameters:
+        
+        * `dir`: The directory to list
+        * `domain`: The domain to look in for `dir`
+        * `include_directories`: Whether to include directories in the
+        listing
+        * `filestore`: The filestore of the location in which `dir`
+        resides. If this is not passed in, the filestore will be
+        retrieved from the appliance. This is to help when acting
+        recursively so the filestore is retrieved only once
         """
         # dir won't match if it ends in a "/"
         dir = dir.rstrip("/")
