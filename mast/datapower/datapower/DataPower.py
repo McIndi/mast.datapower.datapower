@@ -1110,7 +1110,7 @@ class DataPower(object):
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.do_action("SaveConfig", domain="default")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> print "OK" in resp.text
             True
             >>> print bool(resp)
@@ -1570,7 +1570,7 @@ class DataPower(object):
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.del_rbm_fallback("testuser1")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> # This should go through 2 request/response cycles
             >>> print len(dp._history)
             2
@@ -1824,7 +1824,7 @@ class DataPower(object):
             >>> contents = base64.encodestring("Test Succeeded")
             >>> resp = dp._set_file(contents, "local:/test.txt", "default")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> print dp.getfile("default", "local:/test.txt")
             Test Succeeded
         """
@@ -1865,7 +1865,7 @@ class DataPower(object):
             ...     domain="default",
             ...     overwrite=True)
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> print len(dp._history)
             3
             >>> resp = dp.set_file(
@@ -1964,7 +1964,7 @@ class DataPower(object):
             ...     domain="default",
             ...     location="local:")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.DPResponse'>
+            <class 'mast.datapower.datapower.DPResponse'>
             >>> print len(dp._history)
             1
         '''
@@ -1984,7 +1984,7 @@ class DataPower(object):
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_temporary_filesystem()
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.DPResponse'>
+            <class 'mast.datapower.datapower.DPResponse'>
             >>> print len(dp._history)
             3
         """
@@ -2007,7 +2007,7 @@ class DataPower(object):
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_encrypted_filesystem()
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.DPResponse'>
+            <class 'mast.datapower.datapower.DPResponse'>
             >>> print len(dp._history)
             9
         """
@@ -2964,7 +2964,7 @@ class DataPower(object):
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_status("CPUUsage")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.StatusResponse'>
+            <class 'mast.datapower.datapower.StatusResponse'>
             >>> print resp.xml.find(".//CPUUsage") # doctest: +ELLIPSIS
             <Element 'CPUUsage' at ...>
         """
