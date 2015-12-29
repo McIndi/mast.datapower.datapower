@@ -175,7 +175,9 @@ class DPResponse(object):
         """
         _method_: `mast.datapower.DPResponse(object)`
 
-        This is a generic response object it is used like this:
+        This is a generic response object.
+        
+        Usage:
 
             :::python
             dp = DataPower('hostname', 'user:password')
@@ -376,6 +378,8 @@ class DataPower(object):
     any information to be sent to or from the appliance being
     represented.
 
+    Usage:
+    
         :::python
         dp = DataPower("localhost", "user:pass")
         print dp.hostname
@@ -505,6 +509,8 @@ class DataPower(object):
         The logger will be configured according to logging.conf in the section
         "appliance".
 
+        Usage:
+        
             :::python
             dp = DataPower("localhost", "user:pass")
             logger = dp.get_logger()
@@ -514,7 +520,7 @@ class DataPower(object):
         return make_logger("DataPower.{}".format(self.hostname))
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def ssh_connect(self, domain='default', port=22, timeout=120):
         """
         _method_: `mast.datapower.datapower.DataPower.ssh_connect(self, domain='default', port=22, timeout=120)`
@@ -581,7 +587,7 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def ssh_is_connected(self):
         """
         _method_: `mast.datapower.datapower.DataPower.ssh_is_connected(self)`
@@ -604,7 +610,7 @@ class DataPower(object):
         return False
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def ssh_disconnect(self):
         """
         _method_: `mast.datapower.datapower.DataPower.ssh_disconnect(self)`
@@ -629,7 +635,7 @@ class DataPower(object):
         return True
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def ssh_issue_command(self, command, timeout=120):
         """
         _method_: `mast.datapower.datapower.DataPower(self, command, timeout=120)`
@@ -637,8 +643,12 @@ class DataPower(object):
         Issues a command through the SSH session as initiated through
         DataPower.ssh_connect.
 
+        Returns: The response from the appliance as a `str`
         Parameters:
 
+        * `command`: The command to send to the appliance.
+        * `timeout`: The amount of time (in seconds) to wait for a
+        response. Defaults to 120.
         """
         username, password = self.credentials.split(":")
         if not self.ssh_is_connected():
@@ -695,9 +705,8 @@ class DataPower(object):
     @logged("debug")
     def ssh_finished_command(self, resp):
         """
-        Returns True if the appliance has finished executing the last command
-        and we received all of the output.
-
+        _method_: `mast.datapower.datapower.DataPower.ssh_finished_command(self, resp)`
+        
         What we do here is check various conditions (all known responses
         that DataPower could give for any command) to see if
         the appliance has sent back a valid response.
@@ -716,6 +725,14 @@ class DataPower(object):
         Finally we check to see if "login:, "Password:" or
         "domain (? for all)" is in the response to handle
         the case when you provided invalid credentials
+
+        Returns: True if the appliance has finished executing the last command
+        and we received all of the output, False otherwise.
+
+        Parameters:
+        
+        * `resp`: The response from the appliance to be checked for
+        completeness.
         """
         import re
         if self._ssh_conn.recv_ready():
@@ -740,6 +757,8 @@ class DataPower(object):
     @logged("debug")
     def send_request(self, status=False, config=False, boolean=False):
         """
+        _method_: `mast.datapower.datapower.DataPower.send_request(self, status=False, config=False, boolean=False)`
+
         This method attempts to send the objects current request
         to the appliance. Use this instead of DataPower.request.send()
         because this will ensure that each action is logged and the
@@ -751,13 +770,31 @@ class DataPower(object):
         (status, config, boolean) These typically map pretty well
         to "get-status", "get-config" and "do-action" requests.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print type(dp.send_request(status=True))
-            <class 'lib.DataPower.DataPower.StatusResponse'>
+            <class 'mast.datapower.datapower.StatusResponse'>
             >>> print type(dp.send_request(config=True))
-            <class 'lib.DataPower.DataPower.ConfigResponse'>
+            <class 'mast.datapower.datapower.ConfigResponse'>
             >>> print type(dp.send_request(boolean=True))
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
+
+        Returns: A DPResponse object containing the XML response from
+        the appliance.
+        
+        Parameters:
+
+        _IMPORTANT_: the parameters `status`, `config` and boolean are
+        mutually exclusive, only one can be `True`.
+        
+        * `status`: If True, It will be returned as a StatusResponse
+        which is a subclass of `DPResponse`
+        * `config`: If True, It will be returned as a ConfigResponse
+        which is a subclass of `DPResponse`
+        * `boolean`: If True, It will be returned as a BooleanResponse
+        which is a subclass of `DPResponse`
         """
         # Gather request and response and put in in self.history
         _hist = {"request": repr(self.request)}
@@ -800,7 +837,13 @@ class DataPower(object):
 
     def log_debug(self, message):
         """
+        _method_: `mast.datapower.datapower.DataPower.log_debug(self, message)`
+
         Log a debug level message through the appliances logger.
+
+        Parameters:
+        
+        * `message`: The message to log
         """
         logger = self.get_logger()
         msg = []
@@ -814,7 +857,13 @@ class DataPower(object):
 
     def log_info(self, message):
         """
-        Log a information level message through the appliances logger.
+        _method_: `mast.datapower.datapower.DataPower.log_info(self, message)`
+
+        Log a informational level message through the appliances logger.
+
+        Parameters:
+        
+        * `message`: The message to log
         """
         logger = self.get_logger()
         msg = []
@@ -828,7 +877,13 @@ class DataPower(object):
 
     def log_warn(self, message):
         """
+        _method_: `mast.datapower.datapower.DataPower.log_warn(self, message)`
+
         Log a warning level message through the appliances logger.
+
+        Parameters:
+        
+        * `message`: The message to log
         """
         logger = self.get_logger()
         msg = []
@@ -842,10 +897,15 @@ class DataPower(object):
 
     def log_error(self, message, get_logs=False):
         """
-        Log a error level message through the appliances logger.
+        _method_: `mast.datapower.datapower.DataPower.log_error(self, message)`
 
-        __NOTE__: If you provide get_logs then we will attempt to
-        retrieve all of the logs from the appliance.
+        Log an error level message through the appliances logger.
+
+        Parameters:
+        
+        * `message`: The message to log
+        * `get_logs`: If True, it will be attempted to download all available
+        logs from the appliance into `$MAST_HOME/tmp`
         """
         logger = self.get_logger()
         msg = []
@@ -864,10 +924,15 @@ class DataPower(object):
 
     def log_critical(self, msg, get_logs=False):
         """
+        _method_: `mast.datapower.datapower.DataPower.log_critical(self, message)`
+
         Log a critical level message through the appliances logger.
 
-        __NOTE__: If you provide get_logs then we will attempt to
-        retrieve all of the logs from the appliance.
+        Parameters:
+        
+        * `message`: The message to log
+        * `get_logs`: If True, it will be attempted to download all available
+        logs from the appliance into `$MAST_HOME/tmp`
         """
         logger = self.get_logger()
         _msg = []
@@ -886,9 +951,8 @@ class DataPower(object):
     @logged("debug")
     def is_reachable(self):
         """
-        Returns True if the appliance is reachable with the information
-        passed to the constructor. Returns False otherwise.
-
+        _method_: `mast.datapower.datapower.DataPower.is_reachable(self)`
+        
         __Implementation Note__:
 
         This method atttempts to query Version from the appliance
@@ -896,12 +960,22 @@ class DataPower(object):
         "datapower" appears in the response (which it should in the dp
         namespace declaration).
 
+        Usage:
+            
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.is_reachable()
             True
             >>> dp = DataPower("does_not_exist", "user:pass")
             >>> print dp.is_reachable()
             False
+
+        Returns: `True` if the appliance is reachable with the information
+        passed to the constructor. Returns `False` otherwise.
+
+        Parameters:
+        
+        This method accepts no arguments
         """
         self.request.clear()
 
@@ -917,17 +991,26 @@ class DataPower(object):
     @logged("debug")
     def check_xml_mgmt(self):
         """
-        Returns True if we can connect to the xml mgmt interface with the
-        information passed to the constructor otherwise returns False.
+        _method_: `mast.datapower.datapower.DataPower.check_xml_mgmt(self)`
+        
+        Returns: `True` if we can connect to the xml mgmt interface with the
+        information passed to the constructor otherwise returns `False`.
         Please see the doc string of DataPower.is_reachable to see the
         implementation note
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.check_xml_mgmt()
             True
             >>> dp = DataPower("does_not_exist", "user:pass")
             >>> print dp.check_xml_mgmt()
             False
+        
+        Parameters:
+        
+        This method accepts no arguments
         """
         try:
             return self.is_reachable()
@@ -938,11 +1021,17 @@ class DataPower(object):
     @logged("debug")
     def check_web_mgmt(self):
         """
-        Returns True if we are able to connect to the appliance's web gui.
-        Otherwise returns False.
+        _method_: `mast.datapower.datapower.DataPower.check_web_mgmt(self)`
+
+        Returns: `True` if we are able to connect to the appliance's web gui.
+        Otherwise returns `False`.
 
         This uses the information passed into the constructor as well as
         settings configured in $MAST_HOME/etc/local/appliances.conf
+        
+        Parameters:
+        
+        This method accepts no arguments
         """
         import urllib2
         import ssl
@@ -964,9 +1053,15 @@ class DataPower(object):
     @logged("debug")
     def check_cli_mgmt(self):
         """
-        Returns True if we can connect to the appliance via SSH otherwise
-        returns False. This uses information passed to the constructor
+        _method_: `mast.datapower.datapower.DataPower.check_cli_mgmt(self)`
+        
+        Returns: `True` if we can connect to the appliance via SSH otherwise
+        returns `False`. This uses information passed to the constructor
         as well as settings configured in $MAST_HOME/etc/local/appliances.conf
+        
+        Parameters:
+        
+        This method accepts no arguments.
         """
         try:
             resp = self.ssh_connect(port=self.ssh_port)
@@ -975,14 +1070,20 @@ class DataPower(object):
         except:
             return False
 
-    @logged("debug")
+    @logged("audit")
     def _add_dynamic_methods(self):
         """
+        _method_: `mast.datapower.datapower.DataPower._add_dynamic_methods(self)`
+        
         __Internal Use__
 
-        This method builds methods dynamically builds and adds methods
+        This method dynamically builds and adds methods
         to the DataPower object based on the do-action functions provided
         by the SOMA.
+        
+        Parameters:
+        
+        This method accepts no arguments
         """
         xp = '{http://schemas.xmlsoap.org/soap/envelope/}Body/'
         xp += '{http://www.datapower.com/schemas/management}request/'
@@ -993,14 +1094,19 @@ class DataPower(object):
                 setattr(self, node.tag, partial(self.do_action, node.tag))
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def do_action(self, action, **kwargs):
         """
+        _method_: `mast.datapower.datapower.DataPower.do_action(self, action, **kwargs)`
+        
         __Internal Use__
 
         This is a generic function meant to implement the dynamic
         methods created by _add_dynamic_methods.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.do_action("SaveConfig", domain="default")
             >>> print type(resp)
@@ -1009,6 +1115,15 @@ class DataPower(object):
             True
             >>> print bool(resp)
             True
+
+        Returns: a BooleanResponse object containing the response from the
+        appliance.
+        
+        Parameters:
+        
+        * `action`: The do-action command (ie `"SaveConfig"`) to be executed
+        by the appliance
+        * `**kwargs`: The keyword-arguments to pass to the do-action command
         """
         if 'domain' in kwargs:
             self.domain = kwargs.get('domain')
@@ -1027,10 +1142,15 @@ class DataPower(object):
     @property
     def environment(self):
         '''
+        _property_: `mast.datapower.datapower.DataPower.environment`
+        
         The environment this appliance belongs to. Returns "-" if
         this appliance does not belong to an environment otherwise
         it returns a string of environments seperated by commas.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.environment
             -
@@ -1057,6 +1177,8 @@ class DataPower(object):
     @property
     def extra(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.extra`
+        
         __Internal Use__
 
         A dictionary to be used with log formatting, but
@@ -1065,6 +1187,9 @@ class DataPower(object):
         current user and the environment which the appliance
         belongs to.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print "domain" in dp.extra
             True
@@ -1093,8 +1218,13 @@ class DataPower(object):
     @logged("debug")
     def domains(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.domains`
+
         A (per-session) cached list of all domains on this DataPower.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower('localhost', 'user:pass')
             >>> print dp.domains
             ['default', 'test1', 'test2', 'test3']
@@ -1110,8 +1240,13 @@ class DataPower(object):
     @logged("debug")
     def users(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.users`
+
         A current list of all users on this DataPower.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3', 'testuser4']
@@ -1127,9 +1262,14 @@ class DataPower(object):
     @logged("debug")
     def groups(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.groups`
+
         A current list of user groups on the appliance
         (running configuration).
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.groups
             ['testgroup1', 'testgroup2', 'testgroup3']
@@ -1145,9 +1285,14 @@ class DataPower(object):
     @logged("debug")
     def raid_directory(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.raid_directory`
+
         The directory at which the raid volume is mounted.
         This is cached as soon as requested.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.raid_directory
             local:/raid0
@@ -1163,8 +1308,13 @@ class DataPower(object):
     @logged("debug")
     def fallback_users(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.fallback_users`
+
         A list of users configured as RBM fallback users.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.fallback_users
             ['testuser1', 'testuser2']
@@ -1179,6 +1329,8 @@ class DataPower(object):
     @logged("debug")
     def history(self):
         """
+        _property_: `mast.datapower.datapower.DataPower.history`
+
         Returns a string containing the complete history of request/response
         to/from the appliance. Each line is prefixed with either "request: "
         or "response: ". They are in chronological order.
@@ -1188,6 +1340,9 @@ class DataPower(object):
         "request" and "response" corresponding to a request sent to the
         appliance and the response received from the appliance.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp._history
             []
@@ -1210,9 +1365,11 @@ class DataPower(object):
         return _hist
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def add_user(self, username, password, privileged=False, user_group=None):
         """
+        _method_: `mast.datapower.datapower.DataPower.add_user(self, username, password, privileged=False, user_group=None)`
+
         Adds a user to this appliance with the specified username,
         password, access-level or user-group.
 
@@ -1223,12 +1380,23 @@ class DataPower(object):
         then privileged must be False (The user will inherit it's
         access-level from the user-group)
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3', 'testuser4']
             >>> resp = dp.add_user("testuser5", "password", privileged=True)
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3', 'testuser4', 'testuser5']
+
+        Parameters:
+        
+        * `username`: The name of the user to add
+        * `password`: The initial password to set for the user
+        * `privileged`: If privileged is `True` the user will have
+        an access level of privileged
+        * `user_group`: The user group to add the user to
         """
         self.request.clear()
         if privileged and user_group:
@@ -1260,17 +1428,26 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def change_password(self, username, password):
         """
+        _method_: `mast.datapower.datapower.DataPower.change_password(self, username, password)`
+
         changes a user's password to password.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.change_password("testuser1", "new_password")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
 
-        TODO: Better test.
+        Parameters:
+        
+        * `username`: The name of the user whos password you'd like to
+        change
+        * `password`: The new password for the user
         """
         self.request.clear()
         self.request.request.modify_config.User(
@@ -1285,17 +1462,26 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def remove_user(self, username):
         """
+        _method_: `mast.datapower.datapower.DataPower.remove_user(self, username)`
+        
         Removes a local user from this appliance.
 
+        Usage:
+            
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3', 'testuser4']
             >>> resp = dp.remove_user("testuser4")
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3']
+            
+        Parameters:
+        
+        * `username`: The name of the user to remove
         """
         self.request.clear()
         self.request.request(domain='default').del_config.User(name=username)
@@ -1303,12 +1489,20 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def ssh_del_rbm_fallback(self, usernames):
         """
-        Removes a user from RBM fallback. This function uses
-        SSH to accomplish the task eliminating the need for
-        for complex and fragile "vector-add" functions.
+        _method_: `mast.datapower.datapower.DataPower.ssh_del_rbm_fallback(self, usernames)`
+
+        Removes a user or a list of users from RBM fallback. This
+        function uses SSH to accomplish the task eliminating the need
+        for for complex and fragile "vector-add" functions.
+
+        Returns: The text transcript of the ssh session
+        
+        Parameters:
+        
+        * `usernames`: A list of usernames to remove as rbm fallback users
         """
         if isinstance(usernames, str):
             usernames = [usernames]
@@ -1328,12 +1522,20 @@ class DataPower(object):
         return session
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def ssh_add_rbm_fallback(self, usernames):
         """
-        Adds a user to RBM fallback. This function uses
-        SSH to accomplish the task eliminating the need for
+        _method_: `mast.datapower.datapower.DataPower.ssh_add_rbm_fallback(self, usernames)`
+        
+        Adds a user or a list of users to RBM fallback. This function
+        uses SSH to accomplish the task eliminating the need for
         for complex and fragile "vector-add" functions.
+        
+        Returns: The text transcript of the ssh session
+        
+        Parameters:
+        
+        * `usernames`: A list of users to add as rbm fallback users
         """
         if isinstance(usernames, str):
             usernames = [usernames]
@@ -1353,13 +1555,18 @@ class DataPower(object):
         return session
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def del_rbm_fallback(self, username):
         '''
+        _method_: `mast.datapower.datapower.DataPower.del_rbm_fallback(self, username)`
+        
         Removes a fallback user from rbm configuration.
         Returns a BooleanResponse object created with the
         DataPower response.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.del_rbm_fallback("testuser1")
             >>> print type(resp)
@@ -1367,6 +1574,14 @@ class DataPower(object):
             >>> # This should go through 2 request/response cycles
             >>> print len(dp._history)
             2
+
+        Returns: A `BooleanResponse` object containing the xml response
+        from the appliance
+        
+        Parameters:
+        
+        * `username`: The name of the user to remove from the appliance's
+        list of rbm fallback users
         '''
         self.request.clear()
         xpath = CONFIG_XPATH + 'RBMSettings[@name="RBM-Settings"]'
@@ -1398,17 +1613,22 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def add_rbm_fallback(self, user):
         '''
-        adds a fallback user to specified rbm configuration.
+        _method_: `mast.datapower.datapower.DataPower.add_rbm_fallback(self, user)`
+
+        Adds a fallback user to specified rbm configuration.
         Returns a BooleanResponse object created with the
         DataPower response.
 
+        Usage:
+        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.add_rbm_fallback("testuser1")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> # This should go through 3 request/response cycles
             >>> print len(dp._history)
             3
@@ -1422,6 +1642,14 @@ class DataPower(object):
         add the fallback user effectively rewriting it's entire
         configuration...Seems inefficient, but otherwise we're
         stuck doing this step manually
+
+        Returns: a `BooleanResponse` object containing the XML response
+        from the appliance.
+        
+        Parameters:
+        
+        * `user`: The name of the user to add to the appliance's list of
+        rbm fallback users
         '''
         if user not in self.users:
             self.log_error("User {} does not exist. Exiting...".format(user))
@@ -1457,27 +1685,43 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
-    def add_group(self, name,
+    @logged("audit")
+    def add_group(self,
+                  name,
                   access_policies=None,
                   admin_state="enabled",
                   local=True):
         """
+        _method_: `mast.datapower.datapower.DataPower.add_group(self, name, access_policies=None, admin_state="enabled", local=True)`
+
         Adds a user-group to this appliance. access_policies should be a
         list of strings containing access-policies to be applied to this
         user-group.
 
-        Returns a BooleanResponse object created with the
-        response from the appliance.
+        Usage:
 
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.groups
             ['testgroup1', 'testgroup2', 'testgroup3']
             >>> resp = dp.add_group("testgroup4")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> print dp.groups
             ['testgroup1', 'testgroup2', 'testgroup3', 'testgroup4']
+
+        Returns: A `BooleanResponse` object containing the appliance's
+        XML response
+
+        Parameters:
+        
+        * `name`: The name of the group to add
+        * `access_policies`: A list of access policies to apply to the
+        group
+        * `admin_state`: The admin-state to apply to the UserGroup object
+        Either `"enabled"` or `"disabled"` 
+        * `local`: Whether to make the group a local group.
+        
         """
         local = "true" if local else "false"
         self.request.clear()
@@ -1491,22 +1735,32 @@ class DataPower(object):
         return resp
 
     @correlate
-    @logged("debug")
+    @logged("audit")
     def del_group(self, group):
         """
+        _method_: `mast.datapower.datapower.DataPower.del_group(self, group)`
+
         Removes a group from the appliance.
 
-        Returns a BooleanResponse object created with the response from
-        the appliance
+        Usage:
 
+            :::python        
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.groups
             ['testgroup1', 'testgroup2', 'testgroup3']
             >>> resp = dp.del_group("testgroup3")
             >>> print type(resp)
-            <class 'lib.DataPower.DataPower.BooleanResponse'>
+            <class 'mast.datapower.datapower.BooleanResponse'>
             >>> print dp.groups
             ['testgroup1', 'testgroup2']
+
+
+        Returns: A `BooleanResponse` object containing the XML response
+        from the appliance.
+
+        Parameters:
+        
+        * `group`: The name of the `UserGroup` to remove
         """
         self.request.clear()
         self.request.request(domain='default').del_config.UserGroup(name=group)
