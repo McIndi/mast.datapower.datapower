@@ -3627,9 +3627,12 @@ class DataPower(object):
 
     @correlate
     @logged("debug")
-    def get_config(self, _class=None,
-                   name=None, recursive=False,
-                   persisted=True, domain='default'):
+    def get_config(self,
+                   _class=None,
+                   name=None,
+                   recursive=False,
+                   persisted=True,
+                   domain='default'):
         """
         Returns a ConfigResponse object representing the configuration of
         the requested object.
