@@ -26,9 +26,9 @@ import re
 class AuthenticationFailure(Exception):
     """
     _class_: `mast.datapower.datapower.AuthenticationFailure(Exception)`
-    
+
     Description:
-        
+
     Raised when the appliance responds with a 200 status code,
     but includes `Authentication Failure` in the response body
     """
@@ -40,7 +40,7 @@ class FailedToRetrieveBackup(Exception):
     _class_: `mast.datapower.datapower.FailedToRetrieveBackup(Exception)`
 
     Description:
-    
+
     Raised when the appliance sends back a response containing an
     empty file node when asked for a normal backup. This usually
     means an intermediate failure or too little space in
@@ -69,9 +69,9 @@ try:
     def fixed_AES_new(key, *ls):
         """
         _function_: `mast.datapower.datapower.fixed_AES_new(key, *ls)`
-        
+
         Description:
-            
+
         __Internal Use__
 
         This is a workaround to
@@ -93,26 +93,26 @@ except ImportError:
 def _escape(string):
     """
     _function_: `mast.datapower.datapower._escape(string)`
-    
+
     Description:
-        
+
     __Internal Use__
 
     This function removes newlines and escapes single and double
     quotations
-    
+
     Returns:
-        
+
     A Python `str` object
 
     Usage:
-        
+
         :::python
         >>> _escape("\"'\r\n'\"")
         &quot;&apos;&apos;&quot;
 
     Parameters:
-    
+
     * `string`: A python `str` object which you would like escaped.
     """
     return string.replace(
@@ -125,19 +125,19 @@ def _escape(string):
 def correlate(func):
     """
     _decorator_: `mast.datapower.datapower.correlate(func)`
-    
+
     Description:
-        
+
     Decorator which changes self.correlation_id before executing
     a function and changes it back to it's previous value after
     execution
-    
+
     Returns:
-        
+
     A Python `function`
 
     Parameters:
-    
+
     * `func`: A callable which you would like executed with a different
     `correlation_id`.
     """
@@ -222,9 +222,9 @@ class DPResponse(object):
         This is a generic response object.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
 
             :::python
@@ -236,9 +236,9 @@ class DPResponse(object):
             print resp.pretty
             str(resp)
             repr(resp)
-        
+
         Parameters:
-        
+
         * `response`: The XML response from a DataPower appliance
         as a Python `str`
         """
@@ -256,18 +256,18 @@ class DPResponse(object):
         the response. This is cached after the first call.
 
         Returns:
-        
+
         `xml.etree.cElementTree`
 
         Usage:
-        
+
             :::python
             >>> resp = DPResponse(dp_xml_response)
             >>> resp.xml
             <object 'xml.etree.cElementTree'>
-            
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         if not hasattr(self, '_xml'):
@@ -289,23 +289,23 @@ class DPResponse(object):
         _property_: `mast.datapower.datapower.pretty`
 
         Description:
-        
+
         Returns a pretty-printed string of the response XML.
         This is cached after the first call.
 
         Returns:
-        
+
         `str`
-        
+
         Usage:
-        
+
             :::python
             >>> resp = DPResponse(dp_xml_response)
             >>> resp.pretty
             ...Pretty-printed xml as str...
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         if not hasattr(self, '_pretty'):
@@ -318,26 +318,26 @@ class DPResponse(object):
         _method_: `mast.datapower.datapower.DPResponse.__str__`
 
         Description:
-        
+
         Pretty-print the response XML and return as `str`.
         This is cached after the first call.
 
         Same as DPResponse.pretty
 
         Returns:
-        
+
         `str`
 
         Usage:
-        
+
             :::python
             >>> resp = DPResponse(dp_xml_response)
             >>> resp.__str__
             ...Pretty-printed xml as str...
-        
+
         Parameters:
 
-        This method accepts no arguments        
+        This method accepts no arguments
         """
         return self.pretty
 
@@ -349,22 +349,22 @@ class DPResponse(object):
 
         Remove newlines and colapse whitespace of the response and return
         as `str`.
-        
+
         Same as DPResponse.text
 
         Returns:
-        
+
         `str`
 
         Usage:
-        
+
             :::python
             >>> resp = DPResponse(dp_xml_response)
             >>> resp.pretty
             ...xml with unnecessary whitespace removed...
-        
+
         Parameters:
-        
+
         This method accepts no parameters
         """
         return self.text
@@ -398,26 +398,26 @@ class BooleanResponse(DPResponse):
         _method_: `mast.datapower.datapower.BooleanResponse.__nonzero__(self)`
 
         Description:
-        
+
         Tests for the existance of the string " OK " to be in the
         response XML.
 
         Returns:
-        
+
         `boolean`
-        
+
         Usage:
-        
+
             :::python
             >>> resp = BooleanResponse("<xml> OK </xml>")
-            >>> print resp.__nonzero__            
+            >>> print resp.__nonzero__
             True
             >>> resp = BooleanResponse("<xml></xml>")
             >>> print resp.__nonzero__
             False
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         if 'OK' in self.text:
@@ -457,26 +457,26 @@ class AMPBooleanResponse(DPResponse):
         _method_: `mast.datapower.datapower.AMPBooleanResponse.__nonzero__(self)`
 
         Description:
-        
+
         Tests for the existance of the string ">ok<" to be in the
         response XML.
 
         Returns:
-        
+
         `boolean`
-        
+
         Usage:
-        
+
             :::python
             >>> resp = BooleanResponse("<xml>ok</xml>")
-            >>> print resp.__nonzero__            
+            >>> print resp.__nonzero__
             True
             >>> resp = BooleanResponse("<xml></xml>")
             >>> print resp.__nonzero__
             False
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         if '>ok<' in self.text:
@@ -489,7 +489,7 @@ class StatusResponse(DPResponse):
     _class_: `mast.datapower.datapower.StatusResponse(DPResponse)`
 
     Description:
-    
+
     __WARNING__: This implementation is currently broken, but will
     be fixed soon.
 
@@ -502,7 +502,7 @@ class StatusResponse(DPResponse):
     @property
     def dictionary(self):
         """
-        BROKEN IMPLEMENTATION!        
+        BROKEN IMPLEMENTATION!
         """
         if not hasattr(self, "_dict"):
             self._dict = {}
@@ -531,7 +531,7 @@ class ConfigResponse(DPResponse):
     @property
     def dictionary(self):
         """
-        BROKEN IMPLEMENTATION!        
+        BROKEN IMPLEMENTATION!
         """
         if not hasattr(self, "_dict"):
             self._dict = {}
@@ -552,7 +552,7 @@ class DataPower(object):
     _class_: `mast.datapower.datapower.DataPower(object)`
 
     Description:
-    
+
     This class represents an IBM DataPower appliance. It contains
     numerous convenience methods which are available for use in
     your scripts.
@@ -562,7 +562,7 @@ class DataPower(object):
     represented.
 
     Usage:
-    
+
         :::python
         >>> dp = DataPower("localhost", "user:pass")
         >>> print dp.hostname
@@ -585,14 +585,14 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.__init__(self, hostname, credentials, domain='default', scheme='https', port='5550', uri='/service/mgmt/current', test_case='etc/v7000-xi52.xml', web_port='9090', ssh_port=22, environment=None, check_hostname=True)`
 
         Description:
-        
+
         This method instanciates an instance of a DataPower object.
 
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
-        
+
         Parameters:
 
         * `hostname`: Can be a hostname, IP Address, or an alias configured in
@@ -684,23 +684,23 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.__str__(self)`
 
         Description:
-        
+
         Returns the `str`ing representation of the appliance, which is
         the hostname surrounded by single quotes (')
 
         Returns:
-        
+
         `str`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> str(dp)
             'localhost'
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         return "'{}'".format(self.hostname)
@@ -710,23 +710,23 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.__repr__(self)`
 
         Description:
-        
+
         Returns the `str`ing representation of the appliance, which is
         the hostname surrounded by single quotes (')
 
         Returns:
-        
+
         `str`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> repr(dp)
             'localhost'
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         return "'{}'".format(self.hostname)
@@ -736,17 +736,17 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.get_logger(self)`
 
         Description:
-        
+
         Instanciate and return a `logging.Logger` instance associated
         with this appliance. The logger will be configured according
         to logging.conf in the section "appliance".
 
         Returns:
-        
+
         `logging.Logger`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> logger = dp.get_logger()
@@ -754,7 +754,7 @@ class DataPower(object):
             >>> logger.debug("Debug message")
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         return make_logger("DataPower.{}".format(self.hostname))
@@ -766,18 +766,18 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.ssh_connect(self, domain='default', port=22, timeout=120)`
 
         Descritpion:
-        
+
         This will attempt to connect to the DataPower appliance over SSH.
         Once connected you can issue commands with DataPower.ssh_issue_command.
 
         Don't forget to disconnect by calling `DataPower.ssh_disconnect`.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.ssh_connect()
@@ -848,16 +848,16 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.ssh_is_connected(self)`
 
         Description:
-        
+
         Determines if we are currently connected to the appliance via
         SSH
-        
+
         Returns:
-        
+
         `boolean`
-        
+
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.ssh_is_connected()
@@ -866,9 +866,9 @@ class DataPower(object):
             >>> dp.ssh_is_connected()
             True
             >>> dp.ssh_disconnect()
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         if not hasattr(self, '_ssh'):
@@ -892,16 +892,16 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.ssh_disconnect(self)`
 
         Description:
-        
+
         Disconnects the current SSH session as initiated through
         DataPower.ssh_connect.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.ssh_is_connected()
@@ -912,9 +912,9 @@ class DataPower(object):
             >>> dp.ssh_disconnect()
             >>> dp.ssh_is_connected()
             False
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         if self.ssh_is_connected():
@@ -940,16 +940,16 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower(self, command, timeout=120)`
 
         Description:
-        
+
         Issues a command through the SSH session as initiated through
         DataPower.ssh_connect and return the response.
 
         Returns:
-        
+
         `str`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.ssh_connect()
@@ -1019,11 +1019,11 @@ class DataPower(object):
     def ssh_finished_command(self, resp):
         """
         _method_: `mast.datapower.datapower.DataPower.ssh_finished_command(self, resp)`
-        
+
         Description:
 
         _FOR INTERNAL USE_
-        
+
         What we do here is check various conditions (all known responses
         that DataPower could give for any command) to see if
         the appliance has sent back a valid response.
@@ -1044,12 +1044,12 @@ class DataPower(object):
         the case when you provided invalid credentials
 
         Returns:
-        
+
         True if the appliance has finished executing the last command
         and we received all of the output, False otherwise.
 
         Parameters:
-        
+
         * `resp`: The response from the appliance to be checked for
         completeness.
         """
@@ -1079,7 +1079,7 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.send_request(self, status=False, config=False, boolean=False)`
 
         Description:
-        
+
         This method attempts to send the objects current request
         to the appliance. Use this instead of DataPower.request.send()
         because this will ensure that each action is logged and the
@@ -1092,11 +1092,11 @@ class DataPower(object):
         to "get-status", "get-config" and "do-action" requests.
 
         Returns:
-        
+
         `DPResponse`, `StatusResponse`, `ConfigResponse` or `BooleanResponse`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print type(dp.send_request(status=True))
@@ -1105,12 +1105,12 @@ class DataPower(object):
             <class 'mast.datapower.datapower.ConfigResponse'>
             >>> print type(dp.send_request(boolean=True))
             <class 'mast.datapower.datapower.BooleanResponse'>
-        
+
         Parameters:
 
         _IMPORTANT_: the parameters `status`, `config` and boolean are
         mutually exclusive, only one can be `True`.
-        
+
         * `status`: If True, It will be returned as a StatusResponse
         which is a subclass of `DPResponse`
         * `config`: If True, It will be returned as a ConfigResponse
@@ -1162,21 +1162,21 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.log_debug(self, message)`
 
         Description:
-        
+
         Log a debug level message through the appliances logger.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.log_debug("Debug Message")
 
         Parameters:
-        
+
         * `message`: The message to log
         """
         logger = self.get_logger()
@@ -1196,17 +1196,17 @@ class DataPower(object):
         Log a informational level message through the appliances logger.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.log_info("Informational Message")
 
         Parameters:
-        
+
         * `message`: The message to log
         """
         logger = self.get_logger()
@@ -1226,17 +1226,17 @@ class DataPower(object):
         Log a warning level message through the appliances logger.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.log_warn("Warning Message")
 
         Parameters:
-        
+
         * `message`: The message to log
         """
         logger = self.get_logger()
@@ -1256,17 +1256,17 @@ class DataPower(object):
         Log an error level message through the appliances logger.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.log_error("Error Message")
 
         Parameters:
-        
+
         * `message`: The message to log
         * `get_logs`: If True, it will be attempted to download all available
         logs from the appliance into `$MAST_HOME/tmp`
@@ -1293,17 +1293,17 @@ class DataPower(object):
         Log a critical level message through the appliances logger.
 
         Returns:
-        
+
         `None`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.log_critical("Critical Message")
 
         Parameters:
-        
+
         * `message`: The message to log
         * `get_logs`: If True, it will be attempted to download all available
         logs from the appliance into `$MAST_HOME/tmp`
@@ -1326,12 +1326,12 @@ class DataPower(object):
     def is_reachable(self):
         """
         _method_: `mast.datapower.datapower.DataPower.is_reachable(self)`
-        
+
         Description:
-        
+
         Determines if the appliance is reachable over the SOMA XML
         management interface
-        
+
         __Implementation Note__:
 
         This method atttempts to query Version from the appliance
@@ -1340,11 +1340,11 @@ class DataPower(object):
         namespace declaration).
 
         Returns:
-        
+
         `boolean`
 
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.is_reachable()
@@ -1354,7 +1354,7 @@ class DataPower(object):
             False
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         self.request.clear()
@@ -1377,13 +1377,13 @@ class DataPower(object):
 
         Determines if the appliance is reachable over the SOMA XML
         management interface
-                
-        Returns: 
-        
+
+        Returns:
+
         `boolean`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.check_xml_mgmt()
@@ -1391,9 +1391,9 @@ class DataPower(object):
             >>> dp = DataPower("does_not_exist", "user:pass")
             >>> print dp.check_xml_mgmt()
             False
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         try:
@@ -1408,18 +1408,18 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.check_web_mgmt(self)`
 
         Description:
-        
+
         Determine if the Web GUI is accessable.
-        
+
         This uses the information passed into the constructor as well as
         settings configured in $MAST_HOME/etc/local/appliances.conf
-        
-        Returns: 
-        
+
+        Returns:
+
         `boolean`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.check_web_mgmt()
@@ -1427,9 +1427,9 @@ class DataPower(object):
             >>> dp = DataPower("does_not_exist", "user:pass")
             >>> print dp.check_web_mgmt()
             False
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         import urllib2
@@ -1453,20 +1453,20 @@ class DataPower(object):
     def check_cli_mgmt(self):
         """
         _method_: `mast.datapower.datapower.DataPower.check_cli_mgmt(self)`
-        
+
         Description:
-        
+
         Determine if the SSH management interface is reachable
 
         This uses information passed to the constructor
         as well as settings configured in $MAST_HOME/etc/local/appliances.conf
-        
+
         Returns:
-        
+
         `boolean`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.check_cli_mgmt()
@@ -1474,9 +1474,9 @@ class DataPower(object):
             >>> dp = DataPower("does_not_exist", "user:pass")
             >>> print dp.check_cli_mgmt()
             False
-        
+
         Parameters:
-        
+
         This method accepts no arguments.
         """
         try:
@@ -1490,21 +1490,21 @@ class DataPower(object):
     def _add_dynamic_methods(self):
         """
         _method_: `mast.datapower.datapower.DataPower._add_dynamic_methods(self)`
-        
+
         Description:
-        
+
         __Internal Use__
 
         This method dynamically builds and adds methods
         to the DataPower object based on the do-action functions provided
         by the SOMA.
-        
+
         Returns:
-        
+
         `None`
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         xp = '{http://schemas.xmlsoap.org/soap/envelope/}Body/'
@@ -1520,20 +1520,20 @@ class DataPower(object):
     def do_action(self, action, **kwargs):
         """
         _method_: `mast.datapower.datapower.DataPower.do_action(self, action, **kwargs)`
-        
+
         Description:
-        
+
         __Internal Use__
 
         This is a generic function meant to implement the dynamic
         methods created by _add_dynamic_methods.
 
         Returns:
-        
+
         `BooleanResponse`
-        
+
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.do_action("SaveConfig", domain="default")
@@ -1545,7 +1545,7 @@ class DataPower(object):
             True
 
         Parameters:
-        
+
         * `action`: The do-action command (ie `"SaveConfig"`) to be executed
         by the appliance
         * `**kwargs`: The keyword-arguments to pass to the do-action command
@@ -1568,9 +1568,9 @@ class DataPower(object):
     def environment(self):
         '''
         _property_: `mast.datapower.datapower.DataPower.environment`
-        
+
         Description:
-        
+
         The environment this appliance belongs to. Returns "-" if
         this appliance does not belong to an environment otherwise
         it returns a string of environments seperated by commas.
@@ -1580,7 +1580,7 @@ class DataPower(object):
         `str`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.environment
@@ -1588,9 +1588,9 @@ class DataPower(object):
             >>> dp._environment = "prod, dev, qa"
             >>> print dp.environment
             prod, dev, qa
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         '''
         if self._environment:
@@ -1613,9 +1613,9 @@ class DataPower(object):
     def extra(self):
         """
         _property_: `mast.datapower.datapower.DataPower.extra`
-        
+
         Description:
-        
+
         __Internal Use__
 
         A dictionary to be used with log formatting, but
@@ -1625,11 +1625,11 @@ class DataPower(object):
         belongs to.
 
         Returns:
-        
+
         `dict`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print "domain" in dp.extra
@@ -1646,9 +1646,9 @@ class DataPower(object):
             True
             >>> print "foo" in dp.extra
             False
-        
+
         Parameters:
-        
+
         This method accepts no arguments
         """
         user = self.credentials.split(':')[0]
@@ -1666,22 +1666,22 @@ class DataPower(object):
         _property_: `mast.datapower.datapower.DataPower.domains`
 
         Description:
-        
+
         A (per-session) cached list of all domains on this DataPower.
 
         Returns:
-        
+
         `list`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower('localhost', 'user:pass')
             >>> print dp.domains
             ['default', 'test1', 'test2', 'test3']
 
         Parameters:
-        
+
         This method accepts no parameters
         """
         if not hasattr(self, "_domains"):
@@ -1698,22 +1698,22 @@ class DataPower(object):
         _property_: `mast.datapower.datapower.DataPower.users`
 
         Description:
-        
+
         A current list of all users on this DataPower.
 
         Returns:
-        
+
         `list`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3', 'testuser4']
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         self.request.clear()
@@ -1730,23 +1730,23 @@ class DataPower(object):
         _property_: `mast.datapower.datapower.DataPower.groups`
 
         Description:
-        
+
         A current list of user groups on the appliance
         (running configuration).
 
         Returns:
-        
+
         `list`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.groups
             ['testgroup1', 'testgroup2', 'testgroup3']
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         self.request.clear()
@@ -1763,23 +1763,23 @@ class DataPower(object):
         _property_: `mast.datapower.datapower.DataPower.raid_directory`
 
         Description:
-        
+
         The directory at which the raid volume is mounted.
         This is cached as soon as requested.
 
         Returns:
-        
+
         `list`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.raid_directory
             local:/raid0
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         if not hasattr(self, '_raid_directory'):
@@ -1796,22 +1796,22 @@ class DataPower(object):
         _property_: `mast.datapower.datapower.DataPower.fallback_users`
 
         Description:
-        
+
         A list of users configured as RBM fallback users.
 
         Returns:
-        
+
         `list`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.fallback_users
             ['testuser1', 'testuser2']
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         resp = self.get_config('RBMSettings', persisted=False)
@@ -1836,7 +1836,7 @@ class DataPower(object):
         appliance and the response received from the appliance.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp._history
@@ -1876,7 +1876,7 @@ class DataPower(object):
         access-level from the user-group)
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.users
@@ -1886,7 +1886,7 @@ class DataPower(object):
             ['testuser1', 'testuser2', 'testuser3', 'testuser4', 'testuser5']
 
         Parameters:
-        
+
         * `username`: The name of the user to add
         * `password`: The initial password to set for the user
         * `privileged`: If privileged is `True` the user will have
@@ -1931,7 +1931,7 @@ class DataPower(object):
         changes a user's password to password.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.change_password("testuser1", "new_password")
@@ -1939,7 +1939,7 @@ class DataPower(object):
             <class 'mast.datapower.datapower.BooleanResponse'>
 
         Parameters:
-        
+
         * `username`: The name of the user whos password you'd like to
         change
         * `password`: The new password for the user
@@ -1961,11 +1961,11 @@ class DataPower(object):
     def remove_user(self, username):
         """
         _method_: `mast.datapower.datapower.DataPower.remove_user(self, username)`
-        
+
         Removes a local user from this appliance.
 
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.users
@@ -1973,9 +1973,9 @@ class DataPower(object):
             >>> resp = dp.remove_user("testuser4")
             >>> print dp.users
             ['testuser1', 'testuser2', 'testuser3']
-            
+
         Parameters:
-        
+
         * `username`: The name of the user to remove
         """
         self.request.clear()
@@ -1994,9 +1994,9 @@ class DataPower(object):
         for for complex and fragile "vector-add" functions.
 
         Returns: The text transcript of the ssh session
-        
+
         Parameters:
-        
+
         * `usernames`: A list of usernames to remove as rbm fallback users
         """
         if isinstance(usernames, str):
@@ -2021,15 +2021,15 @@ class DataPower(object):
     def ssh_add_rbm_fallback(self, usernames):
         """
         _method_: `mast.datapower.datapower.DataPower.ssh_add_rbm_fallback(self, usernames)`
-        
+
         Adds a user or a list of users to RBM fallback. This function
         uses SSH to accomplish the task eliminating the need for
         for complex and fragile "vector-add" functions.
-        
+
         Returns: The text transcript of the ssh session
-        
+
         Parameters:
-        
+
         * `usernames`: A list of users to add as rbm fallback users
         """
         if isinstance(usernames, str):
@@ -2054,13 +2054,13 @@ class DataPower(object):
     def del_rbm_fallback(self, username):
         '''
         _method_: `mast.datapower.datapower.DataPower.del_rbm_fallback(self, username)`
-        
+
         Removes a fallback user from rbm configuration.
         Returns a BooleanResponse object created with the
         DataPower response.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.del_rbm_fallback("testuser1")
@@ -2072,9 +2072,9 @@ class DataPower(object):
 
         Returns: A `BooleanResponse` object containing the xml response
         from the appliance
-        
+
         Parameters:
-        
+
         * `username`: The name of the user to remove from the appliance's
         list of rbm fallback users
         '''
@@ -2118,7 +2118,7 @@ class DataPower(object):
         DataPower response.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.add_rbm_fallback("testuser1")
@@ -2140,9 +2140,9 @@ class DataPower(object):
 
         Returns: a `BooleanResponse` object containing the XML response
         from the appliance.
-        
+
         Parameters:
-        
+
         * `user`: The name of the user to add to the appliance's list of
         rbm fallback users
         '''
@@ -2209,14 +2209,14 @@ class DataPower(object):
         XML response
 
         Parameters:
-        
+
         * `name`: The name of the group to add
         * `access_policies`: A list of access policies to apply to the
         group
         * `admin_state`: The admin-state to apply to the UserGroup object
-        Either `"enabled"` or `"disabled"` 
+        Either `"enabled"` or `"disabled"`
         * `local`: Whether to make the group a local group.
-        
+
         """
         local = "true" if local else "false"
         self.request.clear()
@@ -2239,7 +2239,7 @@ class DataPower(object):
 
         Usage:
 
-            :::python        
+            :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.groups
             ['testgroup1', 'testgroup2', 'testgroup3']
@@ -2254,7 +2254,7 @@ class DataPower(object):
         from the appliance.
 
         Parameters:
-        
+
         * `group`: The name of the `UserGroup` to remove
         """
         self.request.clear()
@@ -2266,8 +2266,8 @@ class DataPower(object):
     @logged("audit")
     def getfile(self, domain, filename):
         """
-        _method_: `mast.datapower.datapower.DataPower.getfile(self, domain, filename)`        
-        
+        _method_: `mast.datapower.datapower.DataPower.getfile(self, domain, filename)`
+
         Retrieves a file from this appliance.
 
         Usage:
@@ -2283,11 +2283,11 @@ class DataPower(object):
             >>> # with no considerations
             >>> print dp.getfile("default", "config:/empty.txt")
             <BLANKLINE>
-        
+
         Returns: the contents base64 decoded and ready for writing to a file.
 
         Parameters:
-        
+
         * `domain`: The domain from which to retrieve the file
         * `filename`: The path and filename of the file to retrieve
         """
@@ -2320,7 +2320,7 @@ class DataPower(object):
         Uploads a file to DataPower.
 
         Usage:
-            
+
             :::python
             >>> import base64
             >>> dp = DataPower("localhost", "user:pass")
@@ -2357,7 +2357,7 @@ class DataPower(object):
 
     @correlate
     @logged("audit")
-    def set_file(self, file_in, file_out, domain, overwrite=True):
+    def set_file(self, file_in, file_out, domain, overwrite=True, filestore=None):
         '''
         _method_: `mast.datapower.datapower.DataPower.set_file(self, file_in, file_out, domain, overwrite=True)`
 
@@ -2388,22 +2388,24 @@ class DataPower(object):
             4
 
         Parameters:
-        
+
         * file_in: Should be a string containing the path and
         filename of the file to upload
         * file_out: If a location or directory is provided filename will be
         as it appears on the local machine, if a path and filename is provided
         filename will be as provided
         * domain: The domain to which to upload the file
-
+        * `filestore`: if provided, it should be a DPResponse from a
+        get-filestore request. This is used to avoid repeated requests
+        to the appliance
         '''
         if not overwrite:
-            if self.file_exists(file_out, domain):
+            if self.file_exists(file_out, domain, filestore):
                 self.log_error(
                     "Attempted to overwrite file with overwrite set to False")
                 return False
-        if self.directory_exists(file_out, domain) or \
-                self.location_exists(file_out, domain):
+        if self.directory_exists(file_out, domain, filestore) or \
+                self.location_exists(file_out, domain, filestore):
             file_out = "{}/{}".format(file_out, os.path.basename(file_in))
             file_out = file_out.replace("//", "/")
         # Fix for leading and trailing whitespace in the filename
@@ -2426,7 +2428,7 @@ class DataPower(object):
         is True it will copy the file into local_dir.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.del_file(
@@ -2448,9 +2450,9 @@ class DataPower(object):
 
         Returns: A `BooleanResponse` object containing the appliance's
         XML response
-        
+
         Parameters:
-        
+
         * `domain`: The domain from which to delete the file
         * `filename`: The path and filename of the file to delete
         * `backup`: If `True`, the file will be backed up locally before
@@ -2475,16 +2477,16 @@ class DataPower(object):
         call.
 
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp._get_local_file("README.md")
             <base64 encoded contents of the file>
-        
+
         Returns: The base64 encoded string representing the file contents
-        
+
         Parameters:
-        
+
         * `file_in`: The path and filename of  the file to base64 encode
         and return
         """
@@ -2503,9 +2505,9 @@ class DataPower(object):
 
         Returns: A `DPResponse` object containing the XML response of
         the appliance
-        
+
         Usage:
-            
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> resp = dp.get_filestore(
@@ -2515,7 +2517,7 @@ class DataPower(object):
             <class 'mast.datapower.datapower.DPResponse'>
 
         Parameters:
-        
+
         * `domain`: The domain from which to retrieve the filestore
         * `location`: The location for which to retrieve the filestore
         '''
@@ -2535,8 +2537,8 @@ class DataPower(object):
 
         Returns: A `DPResponse` object which contains the XML response from
         the appliance
-        
-        Usage:        
+
+        Usage:
 
             :::python
             >>> dp = DataPower("localhost", "user:pass")
@@ -2545,7 +2547,7 @@ class DataPower(object):
             <class 'mast.datapower.datapower.DPResponse'>
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         locations = ["temporary:", "logtemp:", "image:"]
@@ -2567,7 +2569,7 @@ class DataPower(object):
 
         Returns: A `DPResponse` object which contains the XML response
         from the appliance
-        
+
         Usage:
 
             :::python
@@ -2577,7 +2579,7 @@ class DataPower(object):
             <class 'mast.datapower.datapower.DPResponse'>
 
         Parameters:
-        
+
         This method accepts no arguments
         """
         locations = ["local:", "store:",
@@ -2595,7 +2597,7 @@ class DataPower(object):
 
     @correlate
     @logged("debug")
-    def directory_exists(self, directory, domain):
+    def directory_exists(self, directory, domain, filestore=None):
         """
         _method_: `mast.datapower.datapower.DataPower.directory_exists(self, directory, domain)`
 
@@ -2603,7 +2605,7 @@ class DataPower(object):
 
         Returns: `True` if `directory` is a directory in domain,
         `False` otherwise.
-        
+
         Usage:
 
             :::python
@@ -2618,22 +2620,26 @@ class DataPower(object):
             False
 
         Parameters:
-        
+
         * `directory`: The name of the directory which you would like to
         verifiy the existance of
         * `domain`: The name of the domain in which to look for `directory`
+        * `filestore`: if provided, it should be a DPResponse from a
+        get-filestore request. This is used to avoid repeated requests
+        to the appliance
         """
         self.domain = domain
         location = directory.split(':')[0] + ':'
         directory = directory.replace('///', '/')
         directory = directory.rstrip("/")
         xpath = FILESTORE_XPATH + '/directory[@name="{}"]'.format(directory)
-        filestore = self.get_filestore(domain, location)
+        if filestore is None:
+            filestore = self.get_filestore(domain, location)
         return filestore.xml.find(xpath) is not None
 
     @correlate
     @logged("debug")
-    def location_exists(self, location, domain):
+    def location_exists(self, location, domain, filestore=None):
         """
         _method_: `mast.datapower.datapower.DataPower.location_exists(self, location, domain)`
 
@@ -2644,27 +2650,31 @@ class DataPower(object):
         domain `False` otherwise.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.location_exists("local:", "default")
             True
             >>> print dp.location_exists("foo:", "default")
             False
-        
+
         Parameters:
-        
+
         * `location`: The name of the location you would like to
         verify exists
         * `domain`: The name of the domain in which to look for
         `location`
+        * `filestore`: if provided, it should be a DPResponse from a
+        get-filestore request. This is used to avoid repeated requests
+        to the appliance
         """
         self.domain = domain
         location = location.rstrip("/")
         if not location.endswith(":"):
             location = "{}:".format(location)
         try:
-            filestore = self.get_filestore(self.domain, location)
+            if filestore is None:
+                filestore = self.get_filestore(self.domain, location)
             node = filestore.xml.find(
                 './/location[@name="{}"]'.format(location))
             return node is not None
@@ -2673,18 +2683,18 @@ class DataPower(object):
 
     @correlate
     @logged("debug")
-    def file_exists(self, filename, domain):
+    def file_exists(self, filename, domain, filestore=None):
         """
         _method_: `mast.datapower.datapower.DataPower.file_exists(self, filename, domain)`
-        
+
         Determine whether file exists in the specified domain on the
-        appliance        
-        
+        appliance
+
         Returns: `True` if `filename` exists in domain, otherwise
         `False`
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.file_exists("local:/foo/foo.xml", "default")
@@ -2695,12 +2705,15 @@ class DataPower(object):
             True
             >>> print dp.file_exists("local:/foobar/foo.xml", "default")
             False
-        
+
         Parameters:
-        
+
         * `filename`: The path and filename of the file who's existance
         you would like to verify
         * `domain`: The name of the domain in which to look for `filename`
+        * `filestore`: if provided, it should be a DPResponse from a
+        get-filestore request. This is used to avoid repeated requests
+        to the appliance
         """
         self.domain = domain
         location = '{}:'.format(filename.split(':')[0])
@@ -2717,7 +2730,8 @@ class DataPower(object):
                 FILESTORE_XPATH,
                 path,
                 filename)
-        filestore = self.get_filestore(domain, location)
+        if filestore is None:
+            filestore = self.get_filestore(domain, location)
         return filestore.xml.find(xpath) is not None
 
     @correlate
@@ -2733,13 +2747,13 @@ class DataPower(object):
         Returns: None
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> dp.copy_directory("local:", "/tmp", "default", True)
 
         Parameters:
-        
+
         * `dp_path`: The directory/location on the appliance, you would
         like to copy locally
         * `local_path`: The base directory to copy the files to
@@ -2809,13 +2823,13 @@ class DataPower(object):
         _method_: `mast.datapower.datapower.DataPower.ls(self, dir, domain='default', include_directories=True, filestore=None)`
 
         Retrieve a directory listing of `dir` in `domain` on the appliance.
-        
+
         Returns: A python `list` files will have just the filename, but
         directories will have the location and the path in the
         standard notation.
 
         Usage:
-        
+
             :::python
             >>> dp = DataPower("localhost", "user:pass")
             >>> print dp.ls("local:/foo", "default", True)
@@ -2824,9 +2838,9 @@ class DataPower(object):
             ['local:/foo/', 'local:/bar/', 'local:/baz/']
             >>> print dp.ls("local:", "default", False)
             []
-        
+
         Parameters:
-        
+
         * `dir`: The directory to list
         * `domain`: The domain to look in for `dir`
         * `include_directories`: Whether to include directories in the
