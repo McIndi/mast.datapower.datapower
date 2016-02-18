@@ -825,15 +825,16 @@ class DataPower(object):
                 raise
             while not self._ssh_conn.recv_ready():
                 sleep(0.25)
+            resp = ""
             while self._ssh_conn.recv_ready():
-                resp = self._ssh_conn.recv(1024)
-            resp = self.ssh_issue_command("{}\n".format(username))
-            resp = self.ssh_issue_command("{}\n".format(password))
+                resp += self._ssh_conn.recv(1024)
+            resp += self.ssh_issue_command("{}\n".format(username))
+            resp += self.ssh_issue_command("{}\n".format(password))
             if resp.strip().lower().endswith("login:"):
                 raise AuthenticationFailure(
                     "Invalid credentials provided, please ensure "
                     "that account is not locked")
-            resp = self.ssh_issue_command("{}\n".format(domain))
+            resp += self.ssh_issue_command("{}\n".format(domain))
 
             self.log_info("SSH session now active")
         except paramiko.SSHException, e:
@@ -933,8 +934,6 @@ class DataPower(object):
             return False
         return True
 
-    @correlate
-    @logged("audit")
     def ssh_issue_command(self, command, timeout=120):
         """
         _method_: `mast.datapower.datapower.DataPower(self, command, timeout=120)`
@@ -964,10 +963,17 @@ class DataPower(object):
         response. Defaults to 120.
         """
         username, password = self.credentials.split(":")
+        # need to manually log in order to obfuscate credentials
+        logger = make_logger("audit")
+        logger.info(
+            "Attempting to execute ssh_issue_command('{}', '{}')".format(
+                str(self), command.replace(password, "********").strip()
+            ))
         if not self.ssh_is_connected():
             self.log_error(
                 'attempted command on a non-existant '
-                'ssh connection: {}'.format(command))
+                'ssh connection: {}'.format(command.replace(password,
+                                                            "********")))
             return None
         # I need resp.splitlines() to succeed
         resp = '\n'
@@ -978,9 +984,7 @@ class DataPower(object):
 
         self.log_info(
             "Attempting to send SSH command: "
-            "{}".format(
-                command.strip().replace(
-                    "\n{}\n".format(password), "********")))
+            "{}".format(command.strip().replace(password, "********")))
         self._ssh_conn.sendall(command)
 
         # Wait for a response, but check for timeouts
@@ -1011,7 +1015,11 @@ class DataPower(object):
         resp = resp.strip()
         resp = resp.replace('\r', '')
         if not resp.startswith(command):
-            resp = ' {}\n{}'.format(command, resp)
+            resp = ' {}\n{}'.format(command.replace(password, "********"), resp)
+        logger.info(
+            "Finished execution of ssh_issue_command('{}', '{}'). Result: {}".format(
+                str(self), command.replace(password, "********").strip(), resp
+            ))
         return resp
 
     @correlate
