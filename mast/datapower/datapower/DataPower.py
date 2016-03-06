@@ -1064,7 +1064,7 @@ class DataPower(object):
         import re
         if self._ssh_conn.recv_ready():
             return False
-        if re.match('.*?:x[a-z].*#|x[a-z].*#', resp.splitlines()[-1]):
+        if re.match('.*?#$', resp.splitlines()[-1].strip()):
             return True
         elif 'Goodbye' in resp:
             self.ssh_disconnect()
