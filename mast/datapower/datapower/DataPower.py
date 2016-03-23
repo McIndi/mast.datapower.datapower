@@ -2314,9 +2314,7 @@ class DataPower(object):
                 "file {} from {} domain".format(
                     filename,
                     domain))
-        if not _file:
-            # Empty file node
-            return ""
+            raise
         return base64.decodestring(_file)
 
     @correlate
