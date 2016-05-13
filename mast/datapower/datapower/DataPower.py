@@ -580,7 +580,8 @@ class DataPower(object):
                  web_port='9090',
                  ssh_port=22,
                  environment=None,
-                 check_hostname=True):
+                 check_hostname=True,
+                 retry_authentication_failure=True):
         """
         _method_: `mast.datapower.datapower.DataPower.__init__(self, hostname, credentials, domain='default', scheme='https', port='5550', uri='/service/mgmt/current', test_case='etc/v7000-xi52.xml', web_port='9090', ssh_port=22, environment=None, check_hostname=True)`
 
@@ -634,6 +635,7 @@ class DataPower(object):
         self.ssh_port = ssh_port
         self.uri = uri
         self.test_case = test_case
+        self.retry_authentication_failure = retry_authentication_failure
 
         self.domain = domain
         self._environment = environment
@@ -1136,7 +1138,17 @@ class DataPower(object):
                 "Recieved response from appliance: "
                 "{}".format(_escape(self.last_response)))
             if "Authentication failure" in self.last_response:
-                raise AuthenticationFailure(self.last_response)
+                if self.retry_authentication_failure:
+                    self.log_info("Authentication Failure received, retrying in 5 seconds")
+                    sleep(5)
+                    self.last_response = self.request.send(secure=self.check_hostname)
+                    self.log_debug(
+                        "Recieved response from appliance: "
+                        "{}".format(_escape(self.last_response)))
+                    if "Authentication failure" in self.last_response:
+                        raise AuthenticationFailure(self.last_response)
+                else:
+                    raise AuthenticationFailure(self.last_response)
         except Exception, e:
             _hist["response"] = str(e).replace("\n", "").replace("\r", "")
             if hasattr(e, "read"):
@@ -2307,7 +2319,7 @@ class DataPower(object):
             xpath = "".join((
                 BASE_XPATH,
                 "{http://www.datapower.com/schemas/management}file"))
-            _file = resp.xml.find(xpath).text
+            _file = resp.xml.find(xpath).text or ""
         except:
             self.log_error(
                 "An error occurred while trying to retrieve "
@@ -3768,6 +3780,11 @@ xmlns:dp="http://www.datapower.com/schemas/appliance/management/3.0">
       </dp:SetFirmwareRequest>
    </soapenv:Body>
 </soapenv:Envelope>"""
+        import ssl
+        context = ssl.create_default_context()
+        if not self.check_hostname:
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
         if AcceptLicense:
             self.log_info("AcceptLicense is set to True")
             tpl = tpl.replace("%AcceptLicense%", "<dp:AcceptLicense />")
@@ -3784,7 +3801,7 @@ xmlns:dp="http://www.datapower.com/schemas/appliance/management/3.0">
             headers={
                 'Content-Type': 'text/xml',
                 'Authorization': 'Basic {}'.format(creds)})
-        response_xml = urllib2.urlopen(req, timeout=timeout)
+        response_xml = urllib2.urlopen(req, timeout=timeout, context=context)
         response_xml = response_xml.read()
         return AMPBooleanResponse(response_xml)
 
