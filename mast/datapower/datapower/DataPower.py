@@ -546,6 +546,7 @@ class ConfigResponse(DPResponse):
 logger = logging.getLogger("DataPower")
 logger.addHandler(logging.NullHandler())
 
+global_config = get_config("appliances.conf")
 
 class DataPower(object):
     """
@@ -573,15 +574,15 @@ class DataPower(object):
                  hostname,
                  credentials,
                  domain='default',
-                 scheme='https',
-                 port='5550',
-                 uri='/service/mgmt/current',
-                 test_case='etc/v7000-xi52.xml',
-                 web_port='9090',
-                 ssh_port=22,
+                 scheme=global_config.get("global", "soma_scheme"),
+                 port=global_config.getint("global", "soma_port"),
+                 uri=global_config.get("global", "soma_uri"),
+                 test_case=global_config.get("global", "soma_spec_file"),
+                 web_port=global_config.getint("global", "web_port"),
+                 ssh_port=global_config.getint("global", "ssh_port"),
                  environment=None,
                  check_hostname=True,
-                 retry_authentication_failure=True):
+                 retry_interval=global_config.getint("global", "retry_interval")):
         """
         _method_: `mast.datapower.datapower.DataPower.__init__(self, hostname, credentials, domain='default', scheme='https', port='5550', uri='/service/mgmt/current', test_case='etc/v7000-xi52.xml', web_port='9090', ssh_port=22, environment=None, check_hostname=True)`
 
@@ -635,7 +636,7 @@ class DataPower(object):
         self.ssh_port = ssh_port
         self.uri = uri
         self.test_case = test_case
-        self.retry_authentication_failure = retry_authentication_failure
+        self.retry_interval = retry_interval
 
         self.domain = domain
         self._environment = environment
@@ -653,10 +654,10 @@ class DataPower(object):
         if config.has_section(self.hostname):
 
             if config.has_option(self.hostname, 'soma_port'):
-                self.port = config.get(self.hostname, 'soma_port')
+                self.port = config.getint(self.hostname, 'soma_port')
 
             if config.has_option(self.hostname, 'web_port'):
-                self.web_port = config.get(self.hostname, 'web_port')
+                self.web_port = config.getint(self.hostname, 'web_port')
 
             if config.has_option(self.hostname, 'ssh_port'):
                 self.ssh_port = config.getint(self.hostname, 'ssh_port')
@@ -669,6 +670,9 @@ class DataPower(object):
 
             if config.has_option(self.hostname, 'soma_spec_file'):
                 self.test_case = config.get(self.hostname, 'soma_spec_file')
+
+            if config.has_option(self.hostname, 'retry_interval'):
+                self.retry_interval = config.getint(self.hostname, 'retry_interval')
 
         self.request = Request(self.scheme,
                                self._hostname,
@@ -1131,24 +1135,11 @@ class DataPower(object):
         # Gather request and response and put in in self.history
         _hist = {"request": repr(self.request)}
         self.log_debug("Request built: {}".format(_escape(repr(self.request))))
+        self.log_debug("Sending the request to the appliance.")
         try:
-            self.log_debug("Sending the request to the appliance.")
             self.last_response = self.request.send(secure=self.check_hostname)
-            self.log_debug(
-                "Recieved response from appliance: "
-                "{}".format(_escape(self.last_response)))
             if "Authentication failure" in self.last_response:
-                if self.retry_authentication_failure:
-                    self.log_info("Authentication Failure received, retrying in 5 seconds")
-                    sleep(5)
-                    self.last_response = self.request.send(secure=self.check_hostname)
-                    self.log_debug(
-                        "Recieved response from appliance: "
-                        "{}".format(_escape(self.last_response)))
-                    if "Authentication failure" in self.last_response:
-                        raise AuthenticationFailure(self.last_response)
-                else:
-                    raise AuthenticationFailure(self.last_response)
+                raise AuthenticationFailure(self.last_response)
         except Exception, e:
             _hist["response"] = str(e).replace("\n", "").replace("\r", "")
             if hasattr(e, "read"):
@@ -1158,7 +1149,28 @@ class DataPower(object):
             self.log_error(
                 "An error occurred trying to send request to "
                 "appliance: {}".format(_escape(str(e))))
-            raise
+            if self.retry_interval > 0:
+                try:
+                    self.log_info("Retrying in {} seconds".format(self.retry_interval))
+                    sleep(self.retry_interval)
+                    self.last_response = self.request.send(secure=self.check_hostname)
+                    if "Authentication failure" in self.last_response:
+                        raise AuthenticationFailure(self.last_response)
+                except:
+                    _hist["response"] = str(e).replace("\n", "").replace("\r", "")
+                    if hasattr(e, "read"):
+                        _hist["response"] = e.read().replace(
+                                "\n", "").replace("\r", "")
+                    self._history.append(_hist)
+                    self.log_error(
+                        "An error occurred trying to send request to "
+                        "appliance: {}".format(_escape(str(e))))
+                    raise
+            else:
+                raise
+        self.log_debug(
+            "Recieved response from appliance: "
+            "{}".format(_escape(self.last_response)))
         # TODO: Replace this with an xpath
         _hist["response"] = re.sub(
             r"<dp:file(.*?)>.*?</dp:file>",
