@@ -3303,8 +3303,10 @@ class DataPower(object):
 
     @correlate
     @logged("debug")
-    def get_normal_backup(self, domain='all-domains',
-                          format='ZIP', comment=""):
+    def get_normal_backup(self,
+                          domains=None,
+                          format='ZIP',
+                          comment=""):
         '''
         This function builds the request for a Normal Backup, sends it out,
         extracts the base64 encoded file, base64 decodes the file and returns
@@ -3325,12 +3327,16 @@ class DataPower(object):
             >>> zip.close()
             >>> import os; os.remove("tmp/out.zip")
         '''
-        self.domain = domain
+        if domains is None:
+            domains = ["all-domains"]
+        if isinstance(domains, basestring):
+            domains = [domains]
         self.request.clear()
         dobackup = self.request.request.do_backup(format=format)
         if comment:
             dobackup.user_comment(comment)
-        dobackup.domain(name=domain)
+        for domain in domains:
+            dobackup.domain(name=domain)
         resp = self.send_request()
         try:
             xpath = "".join((
