@@ -86,6 +86,7 @@ try:
     # END HACK
     import paramiko
     paramiko_is_present = True
+    make_logger('paramiko')
 except ImportError:
     paramiko_is_present = False
 
