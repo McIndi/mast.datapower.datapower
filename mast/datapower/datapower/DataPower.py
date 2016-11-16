@@ -1471,7 +1471,7 @@ class DataPower(object):
         if not self.check_hostname:
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
-        url = 'https://' + self._hostname + ':' + self.web_port
+        url = 'https://' + self._hostname + ':' + str(self.web_port)
         try:
             test = urllib2.urlopen(url, context=context)
         except urllib2.URLError, e:
