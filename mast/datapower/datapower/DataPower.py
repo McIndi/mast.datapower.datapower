@@ -2920,10 +2920,15 @@ class DataPower(object):
 
     @correlate
     @logged("debug")
-    def do_import(self, domain,
-                  zip_file, deployment_policy=None,
-                  dry_run=False, overwrite_files=True,
-                  overwrite_objects=True, rewrite_local_ip=True,
+    def do_import(self,
+                  domain,
+                  zip_file,
+                  deployment_policy=None,
+                  deployment_policy_variables=None,
+                  dry_run=False,
+                  overwrite_files=True,
+                  overwrite_objects=True,
+                  rewrite_local_ip=True,
                   source_type='ZIP'):
         '''
         This function will import a zip file type configuration to the
@@ -2944,6 +2949,8 @@ class DataPower(object):
         do_import = self.request.request(domain=domain).do_import
         if deployment_policy is not None:
             do_import.set('deployment-policy', deployment_policy)
+        if deployment_policy_variables is not None:
+            do_import.set('deployment-policy-variables', deployment_policy_variables)
         do_import.set('rewrite-local-ip', rewrite_local_ip)
         do_import.set('overwrite-objects', overwrite_objects)
         do_import.set('overwrite-files', overwrite_files)
