@@ -1175,7 +1175,7 @@ class DataPower(object):
         # TODO: Replace this with an xpath
         _hist["response"] = re.sub(
             r"<dp:file(.*?)>.*?</dp:file>",
-            r"<dp:file\1>base 64 encoded file removed from log</file>",
+            r"<dp:file\1>base 64 encoded file removed from log</dp:file>",
             str(self.last_response).replace("\r", "").replace("\n", ""))
 
         self._history.append(_hist)
