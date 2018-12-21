@@ -3619,7 +3619,7 @@ class DataPower(object):
             obj.set('class', 'all-classes')
             obj.set('name', 'all-objects')
             obj.set('recursive', 'true')
-            obj.set('to-persisted', 'true')
+            obj.set('from-persisted', 'true')
             _resp = self.send_request()
             el = _resp.xml.find(
                 "{}{}".format(
