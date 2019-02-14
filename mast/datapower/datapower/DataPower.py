@@ -3373,7 +3373,7 @@ class DataPower(object):
                     "We received a corrupted backup when attempting to "
                     "backup {} {} ".format(self.hostname, domains)
                 )
-        return 
+        return _file
 
     @correlate
     @logged("debug")
