@@ -11,6 +11,11 @@ if hasattr(etree, 'register_namespace'):
         'http://schemas.xmlsoap.org/soap/envelope/')
 else:
     pass
+    
+nsmap = {
+    'soapenv': 'http://schemas.xmlsoap.org/soap/envelope/',
+    'man': 'http://www.datapower.com/schemas/management',
+}
 
 
 class SomaRequest(Request):

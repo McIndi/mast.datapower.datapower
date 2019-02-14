@@ -16,6 +16,8 @@ from mast.hashes import get_sha1
 from mast.logging import make_logger, logged
 from datetime import datetime
 from time import time, sleep
+from StringIO import StringIO
+import zipfile
 import logging
 import random
 import base64
@@ -3309,6 +3311,7 @@ class DataPower(object):
             raise
         return base64.decodestring(response)
 
+
     @correlate
     @logged("debug")
     def get_normal_backup(self,
@@ -3358,10 +3361,19 @@ class DataPower(object):
                 "and retrying.")
         except:
             self.log_error(
-                "There was an error retrieving a backup from {}".format(
-                    domain))
+                "There was an error retrieving a backup from {} {}".format(
+                    self.hostname, domain))
             raise
-        return base64.decodestring(_file)
+        _file = base64.decodestring(_file)
+        if format == "ZIP":
+            stringio = StringIO(_file)
+            zip_file = zipfile.ZipFile(stringio)
+            if zip_file.testzip() is not None:
+                raise FailedToRetrieveBackup(
+                    "We received a corrupted backup when attempting to "
+                    "backup {} {} ".format(self.hostname, domains)
+                )
+        return 
 
     @correlate
     @logged("debug")

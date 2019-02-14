@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='mast.datapower.datapower',
-      version='2.2.0',
+      version='2.3.2',
       description='A library to interact with IBM DataPower appliances '
                   'XML Management Interface and CLI Management Interface',
       author='Clifford Bressette IV',
